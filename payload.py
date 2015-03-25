@@ -4,41 +4,41 @@ __author__ = 'shunghsiyu'
 
 class Payload(object):
     def __init__(self, H, D, M):
-        _H = H
-        _D = D
-        _M = M
+        self._H = H
+        self._D = D
+        self._M = M
 
     def D(self):
-        return _D
+        return self._D
 
 
     def H(self):
-        return _H
+        return self._H
 
     def M(self):
-        return _M
+        return self._M
 
     def serialize(self):
         return pickle.dump(self)
 
 class Container(object):
     def __init__(self, A, B, k, S = None):
-        _A = A
-        _B = B
-        _k = k
-        _S = S
+       self._A = A
+       self._B = B
+       self._k = k
+       self._S = S
 
     def A(self):
-        return _A
+        return self._A
 
     def B(self):
-        return _B
+        return self._B
 
     def k(self):
-        return _k
+        return self._k
 
     def S(self):
-        return _S
+        return self._S
 
     def serialize(self):
         return pickle.dump(self)
