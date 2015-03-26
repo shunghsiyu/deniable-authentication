@@ -38,7 +38,7 @@ class Original:
         M = hmac.digest()
 
         ABk_serialized = Container(A, B, k).serialize()
-        hashABk = SHA256.new(ABk_serialized).digest()
+        hashABk = SHA256.new(ABk_serialized)
         S = signer.sign(hashABk)
 
         ABkS_serialized = Container(A, B, k, S).serialize()
@@ -86,7 +86,7 @@ class Original:
         assert isinstance(verifier, PSS_SigScheme)
 
         ABk_serialized = Container(A, B, k).serialize()
-        hashABk = SHA256.new(ABk_serialized).digest()
+        hashABk = SHA256.new(ABk_serialized)
         if not verifier.verify(hashABk, S):
             passed = False
         return passed
