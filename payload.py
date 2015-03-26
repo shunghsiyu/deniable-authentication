@@ -19,7 +19,7 @@ class Payload(object):
         return self._M
 
     def serialize(self):
-        return pickle.dump(self)
+        return pickle.dumps(self)
 
 class Container(object):
     def __init__(self, A, B, k, S = None):
@@ -41,4 +41,4 @@ class Container(object):
         return self._S
 
     def serialize(self):
-        return pickle.dump(self)
+        return pickle.dumps(self)
