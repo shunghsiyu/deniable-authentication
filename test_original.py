@@ -26,7 +26,6 @@ class TestOriginal(unittest.TestCase):
         with open(self.B+'.pub', 'w') as f:
             rsaB = RSA.generate(self.NUM_BITS).publickey()
             f.write(rsaB.exportKey('PEM'))
-        self.object = Original(self.A)
 
     def tearDown(self):
         os.remove(self.A)
@@ -48,23 +47,23 @@ class TestOriginal(unittest.TestCase):
 
     def test_enc_toself(self):
         data = '123'
-        cipher_text = self.object.enc(data, self.A, self.A)
+        cipher_text = Original(self.A).enc(data, self.A, self.A)
         self.assertIsNotNone(cipher_text)
 
     def test_dec_fromself(self):
         data = '123'
-        cipher_text = self.object.enc(data, self.A, self.A)
-        plain_text = self.object.dec(cipher_text)
+        cipher_text = Original(self.A).enc(data, self.A, self.A)
+        plain_text = Original(self.A).dec(cipher_text)
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
 
     def test_publickey(self):
-        public_key = self.object.publickey(self.B)
+        public_key = Original(self.A).publickey(self.B)
         self.assertIsNotNone(public_key, 'Must be able to find public key')
         self.assertIsInstance(public_key, _RSAobj)
 
     def test_privatekey(self):
-        private_key = self.object.privatekey()
+        private_key = Original(self.A).privatekey()
         self.assertIsNotNone(private_key, 'Must have a private key')
         self.assertIsInstance(private_key, _RSAobj)
         self.assertTrue(private_key.has_private())
