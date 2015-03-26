@@ -15,22 +15,24 @@ class TestOriginal(unittest.TestCase):
 
     NUM_BITS = 2048
 
-    def setUp(self):
-        self.A = ''.join(random.choice(string.ascii_letters) for _ in range(12))
-        self.B = ''.join(random.choice(string.ascii_letters) for _ in range(12))
-        rsaA = RSA.generate(self.NUM_BITS)
-        with open(self.A, 'w') as f:
+    @classmethod
+    def setUpClass(cls):
+        cls.A = ''.join(random.choice(string.ascii_letters) for _ in range(12))
+        cls.B = ''.join(random.choice(string.ascii_letters) for _ in range(12))
+        rsaA = RSA.generate(cls.NUM_BITS)
+        with open(cls.A, 'w') as f:
             f.write(rsaA.exportKey('PEM'))
-        with open(self.A+'.pub', 'w') as f:
+        with open(cls.A+'.pub', 'w') as f:
             f.write(rsaA.publickey().exportKey('PEM'))
-        with open(self.B+'.pub', 'w') as f:
-            rsaB = RSA.generate(self.NUM_BITS).publickey()
+        with open(cls.B+'.pub', 'w') as f:
+            rsaB = RSA.generate(cls.NUM_BITS).publickey()
             f.write(rsaB.exportKey('PEM'))
 
-    def tearDown(self):
-        os.remove(self.A)
-        os.remove(self.A+'.pub')
-        os.remove(self.B+'.pub')
+    @classmethod
+    def tearDownClass(cls):
+        os.remove(cls.A)
+        os.remove(cls.A+'.pub')
+        os.remove(cls.B+'.pub')
 
     def test_pickle_Container(self):
         A = 'A'
