@@ -31,7 +31,7 @@ class Original:
 
         k = Random.get_random_bytes(self._n)
 
-        aesk = AES.new(k, AES.MODE_CTR, self._ctr)
+        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr)
         D = aesk.encrypt(data)
 
         hmac = HMAC.new(k, D, SHA256)
@@ -69,7 +69,7 @@ class Original:
         if not self._checkDM(k, D, M):
             raise RuntimeError('MAC and the message does not match')
 
-        aesk = AES.new(k, AES.MODE_CTR, self._ctr)
+        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr)
         data = aesk.decrypt(D)
         return data
 
