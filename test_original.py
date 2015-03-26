@@ -2,7 +2,9 @@ import unittest
 import random
 import string
 import os
+import pickle
 from original import Original
+from payload import Container
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey.RSA import _RSAobj
 
@@ -30,6 +32,19 @@ class TestOriginal(unittest.TestCase):
         os.remove(self.A)
         os.remove(self.A+'.pub')
         os.remove(self.B+'.pub')
+
+    def test_pickle_Container(self):
+        A = 'A'
+        B = 'B'
+        k = random.getrandbits(256)
+        S = 'S'
+        serialized = pickle.dumps(Container(A, B, k, S))
+        unserialized = pickle.loads(serialized)
+        self.assertIsInstance(unserialized, Container)
+        self.assertEqual(unserialized.A(), A)
+        self.assertEqual(unserialized.B(), B)
+        self.assertEqual(unserialized.k(), k)
+        self.assertEqual(unserialized.S(), S)
 
     def test_enc_toself(self):
         data = '123'
