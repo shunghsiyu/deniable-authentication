@@ -101,11 +101,13 @@ class Original:
         return passed
 
     def publickey(self, target):
-        raise NotImplementedError()
-        return None
+        with open(target+'.pub', 'r') as f:
+            publickey = RSA.importKey(f.read())
+        return publickey
 
     def privatekey(self):
-        raise NotImplementedError()
-        return None
+        with open(self._identity, 'r') as f:
+            privatekey = RSA.importKey(f.read())
+        return privatekey
 
 raise NotImplementedError()
