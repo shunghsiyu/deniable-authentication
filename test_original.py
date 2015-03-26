@@ -16,16 +16,19 @@ class TestOriginal(unittest.TestCase):
     def setUp(self):
         self.A = ''.join(random.choice(string.ascii_letters) for _ in range(12))
         self.B = ''.join(random.choice(string.ascii_letters) for _ in range(12))
+        rsaA = RSA.generate(self.NUM_BITS)
         with open(self.A, 'w') as f:
-            rsa = RSA.generate(self.NUM_BITS)
-            f.write(rsa.exportKey('PEM'))
+            f.write(rsaA.exportKey('PEM'))
+        with open(self.A+'.pub', 'w') as f:
+            f.write(rsaA.publickey().exportKey('PEM'))
         with open(self.B+'.pub', 'w') as f:
-            rsa = RSA.generate(self.NUM_BITS).publickey()
-            f.write(rsa.exportKey('PEM'))
+            rsaB = RSA.generate(self.NUM_BITS).publickey()
+            f.write(rsaB.exportKey('PEM'))
         self.object = Original(self.A)
 
     def tearDown(self):
         os.remove(self.A)
+        os.remove(self.A+'.pub')
         os.remove(self.B+'.pub')
 
     def test_enc(self):
