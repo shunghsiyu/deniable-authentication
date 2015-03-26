@@ -43,9 +43,12 @@ class Original:
         hashABk = SHA256.new(ABk_serialized)
         S = signer.sign(hashABk)
 
+        t = k
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
         ABkS_serialized = Container(A, B, k, S).serialize()
-        H = rsa.encrypt(ABkS_serialized)
-        return Payload(H, D, M).serialize()
+        H = aest.encrypt(ABkS_serialized)
+        payload = Payload(H, D, M, ct=rsa.encrypt(t))
+        return payload.serialize()
 
     def dec(self, payload_serialized):
         payload = pickle.loads(payload_serialized)
@@ -56,7 +59,10 @@ class Original:
         rsa = PKCS1_OAEP.new(priB, SHA256)
         assert isinstance(rsa, PKCS1OAEP_Cipher)
         H = payload.H()
-        ABkS = pickle.loads(rsa.decrypt(H))
+        t = rsa.decrypt(payload.ct())
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
+        ABkS_serialized = aest.decrypt(H)
+        ABkS = pickle.loads(ABkS_serialized)
         assert isinstance(ABkS, Container)
 
         k = ABkS.k()
