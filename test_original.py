@@ -4,6 +4,7 @@ import string
 import os
 from original import Original
 from Crypto.PublicKey import RSA
+from Crypto.PublicKey.RSA import _RSAobj
 
 __author__ = 'shunghsiyu'
 
@@ -21,6 +22,7 @@ class TestOriginal(unittest.TestCase):
         with open(self.B+'.pub', 'w') as f:
             rsa = RSA.generate(self.NUM_BITS).publickey()
             f.write(rsa.exportKey('PEM'))
+        self.object = Original(self.A)
 
     def tearDown(self):
         os.remove(self.A)
@@ -33,10 +35,15 @@ class TestOriginal(unittest.TestCase):
         self.fail('Not implemented')
 
     def test_publickey(self):
-        self.fail('Not implemented')
+        public_key = self.object.publickey(self.B)
+        self.assertIsNotNone(public_key, 'Must be able to find public key')
+        self.assertIsInstance(public_key, _RSAobj)
 
     def test_privatekey(self):
-        self.fail('Not implemented')
+        private_key = self.object.privatekey()
+        self.assertIsNotNone(private_key, 'Must have a private key')
+        self.assertIsInstance(private_key, _RSAobj)
+        self.assertTrue(private_key.has_private())
 
 if __name__ == '__main__':
     unittest.main()
