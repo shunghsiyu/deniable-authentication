@@ -17,7 +17,9 @@ class Original:
         self._identity = identity
         self._n = 32
         self._iv = 1L
-        self._ctr = Counter.new(128, initial_value=self._iv)
+
+    def _ctr(self):
+        return Counter.new(128, initial_value=self._iv)
 
     def enc(self, data, A, B):
         priA = self.privatekey()
@@ -31,7 +33,7 @@ class Original:
 
         k = Random.get_random_bytes(self._n)
 
-        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr)
+        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr())
         D = aesk.encrypt(data)
 
         hmac = HMAC.new(k, D, SHA256)
@@ -69,7 +71,7 @@ class Original:
         if not self._checkDM(k, D, M):
             raise RuntimeError('MAC and the message does not match')
 
-        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr)
+        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr())
         data = aesk.decrypt(D)
         return data
 
