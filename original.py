@@ -109,5 +109,3 @@ class Original:
         with open(self._identity, 'r') as f:
             privatekey = RSA.importKey(f.read())
         return privatekey
-
-raise NotImplementedError()
