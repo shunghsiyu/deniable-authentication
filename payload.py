@@ -3,20 +3,23 @@ import pickle
 __author__ = 'shunghsiyu'
 
 class Payload(object):
-    def __init__(self, H, D, M):
+    def __init__(self, H, D, M, ct):
         self._H = H
         self._D = D
         self._M = M
+        self._ct = ct
 
     def D(self):
         return self._D
-
 
     def H(self):
         return self._H
 
     def M(self):
         return self._M
+
+    def ct(self):
+        return self._ct
 
     def serialize(self):
         return pickle.dumps(self)
