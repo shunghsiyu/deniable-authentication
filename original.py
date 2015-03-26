@@ -43,7 +43,7 @@ class Original:
         hashABk = SHA256.new(ABk_serialized)
         S = signer.sign(hashABk)
 
-        t = k
+        t = Random.get_random_bytes(self._n)
         aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
         ABkS_serialized = Container(A, B, k, S).serialize()
         H = aest.encrypt(ABkS_serialized)
