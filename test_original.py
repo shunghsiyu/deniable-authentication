@@ -31,11 +31,17 @@ class TestOriginal(unittest.TestCase):
         os.remove(self.A+'.pub')
         os.remove(self.B+'.pub')
 
-    def test_enc(self):
-        self.fail('Not implemented')
+    def test_enc_toself(self):
+        data = '123'
+        cipher_text = self.object.enc(data, self.A, self.A)
+        self.assertIsNotNone(cipher_text)
 
-    def test_dec(self):
-        self.fail('Not implemented')
+    def test_dec_fromself(self):
+        data = '123'
+        cipher_text = self.object.enc(data, self.A, self.A)
+        plain_text = self.object.dec(cipher_text)
+        self.assertIsNotNone(plain_text)
+        self.assertEqual(data, plain_text)
 
     def test_publickey(self):
         public_key = self.object.publickey(self.B)
