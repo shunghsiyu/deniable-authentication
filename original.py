@@ -15,7 +15,7 @@ __author__ = 'shunghsiyu'
 class Original:
     def __init__(self, identity):
         self._identity = identity
-        self._n = 32
+        self._n = 16
         self._iv = 1L
 
     def _ctr(self):
