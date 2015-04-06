@@ -57,3 +57,6 @@ target/
 #IPython Notebook
 .idea/
 .ipynb_checkpoints/
+
+# Generated
+gen/
