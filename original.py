@@ -9,19 +9,22 @@ from Crypto.PublicKey.RSA import _RSAobj
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Signature.PKCS1_PSS import PSS_SigScheme
 from Crypto.Util import Counter
-from payload import Payload, Container
-import pickle
+from gen import payloadxml, containerxml
+import base64
+import pyxb
 
 __author__ = 'shunghsiyu'
 
-class Original:
+class Original(object):
     def __init__(self, identity):
         self._identity = identity
         self._n = 16
         self._iv = 1L
 
-    def _ctr(self):
-        return Counter.new(128, initial_value=self._iv)
+    def _ctr(self, iv=None):
+        if iv is None:
+            iv = self._iv
+        return Counter.new(128, initial_value=iv)
 
     def enc(self, data, A, B):
         priA = self.privatekey()
@@ -41,41 +44,47 @@ class Original:
         hmac = HMAC.new(k, D, SHA256)
         M = hmac.digest()
 
-        ABk_serialized = Container(A, B, k).serialize()
+        ABk_serialized = containerxml.container(A, B, k).toxml('utf-8')
         hashABk = SHA256.new(ABk_serialized)
         S = signer.sign(hashABk)
 
         t = Random.get_random_bytes(self._n)
         aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
-        ABkS_serialized = Container(A, B, k, S).serialize()
+
+        ABkS_serialized = containerxml.container(A, B, k, S).toxml('utf-8')
         H = aest.encrypt(ABkS_serialized)
-        payload = Payload(H, D, M, ct=rsa.encrypt(t))
-        return payload.serialize()
+        payload = payloadxml.payload()
+        assert isinstance(payload, payloadxml.CTD_ANON)
+        cs = rsa.encrypt(t)
+        payload.h = pyxb.BIND(H, csession=base64.b64encode(cs), iv=self._iv)
+        payload.d = D
+        payload.m = M
+        return payload.toxml('utf-8')
 
     def dec(self, payload_serialized):
-        payload = pickle.loads(payload_serialized)
-        assert isinstance(payload, Payload)
+        payload = payloadxml.CreateFromDocument(payload_serialized)
+        assert isinstance(payload, payloadxml.CTD_ANON)
 
         priB = self.privatekey()
         assert isinstance(priB, _RSAobj)
         rsa = PKCS1_OAEP.new(priB, SHA256)
         assert isinstance(rsa, PKCS1OAEP_Cipher)
-        H = payload.H()
-        t = rsa.decrypt(payload.ct())
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
+        H = payload.h.value()
+        t = rsa.decrypt(payload.h.csession)
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.h.iv))
         ABkS_serialized = aest.decrypt(H)
-        ABkS = pickle.loads(ABkS_serialized)
-        assert isinstance(ABkS, Container)
+        ABkS = containerxml.CreateFromDocument(ABkS_serialized)
+        assert isinstance(ABkS, containerxml.CTD_ANON)
 
-        k = ABkS.k()
-        A = ABkS.A()
-        B = ABkS.B()
-        S = ABkS.S()
+        k = ABkS.k
+        A = ABkS.a
+        B = ABkS.b
+        S = ABkS.s
         if not self._checkABk(A, B, k, S):
             raise RuntimeError('Signature and data does not match')
 
-        D = payload.D()
-        M = payload.M()
+        D = payload.d
+        M = payload.m
         if not self._checkDM(k, D, M):
             raise RuntimeError('MAC and the message does not match')
 
@@ -95,7 +104,7 @@ class Original:
         verifier = PKCS1_PSS.new(pubA)
         assert isinstance(verifier, PSS_SigScheme)
 
-        ABk_serialized = Container(A, B, k).serialize()
+        ABk_serialized = containerxml.container(A, B, k).toxml('utf-8')
         hashABk = SHA256.new(ABk_serialized)
         if not verifier.verify(hashABk, S):
             passed = False
