@@ -55,7 +55,7 @@ class TestOriginal(unittest.TestCase):
         self.assertIsNotNone(cipher_text)
 
     def test_dec_fromself(self):
-        data = '123'
+        data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
         cipher_text = Original(self.A).enc(data, self.A, self.A)
         plain_text = Original(self.A).dec(cipher_text)
         self.assertIsNotNone(plain_text)
