@@ -59,6 +59,24 @@ class TestDiffieHellman(unittest.TestCase):
         self.assertIsNotNone(public_key)
         self.assertIsInstance(public_key, ElGamalobj)
 
+    def test_pg(self):
+        private_keyA = DiffieHellman(self.A).privatekey()
+        public_keyB = DiffieHellman(self.A).publickey(self.B)
+        self.assertEqual(private_keyA.p, public_keyB.p)
+        self.assertEqual(private_keyA.g, public_keyB.g)
+
+    def test_enc_toself(self):
+        data = '123'
+        cipher_text = DiffieHellman(self.A).enc(data, self.A, self.A)
+        self.assertIsNotNone(cipher_text)
+
+    def test_dec_fromself(self):
+        data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
+        cipher_text = DiffieHellman(self.A).enc(data, self.A, self.A)
+        plain_text = DiffieHellman(self.A).dec(cipher_text)
+        self.assertIsNotNone(plain_text)
+        self.assertEqual(data, plain_text)
+
 
 if __name__ == '__main__':
     unittest.main()
