@@ -1,21 +1,37 @@
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
-  <xs:element name="payload">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="h">
-          <xs:complexType>
-            <xs:simpleContent>
-              <xs:extension base="xs:base64Binary">
-                <xs:attribute type="xs:base64Binary" name="csession"/>
-                <xs:attribute type="xs:nonNegativeInteger" name="iv"/>
-                <xs:attribute type="xs:base64Binary" name="hmac"/>
-              </xs:extension>
-            </xs:simpleContent>
-          </xs:complexType>
-        </xs:element>
-        <xs:element type="xs:base64Binary" name="d"/>
-        <xs:element type="xs:base64Binary" name="m"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
+    <xs:element name="payload">
+        <xs:complexType>
+            <xs:choice>
+                <xs:element name="original">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="h">
+                                <xs:complexType>
+                                    <xs:simpleContent>
+                                        <xs:extension base="xs:base64Binary">
+                                            <xs:attribute type="xs:base64Binary" name="csession"/>
+                                            <xs:attribute type="xs:nonNegativeInteger" name="iv"/>
+                                            <xs:attribute type="xs:base64Binary" name="hmac"/>
+                                        </xs:extension>
+                                    </xs:simpleContent>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element type="xs:base64Binary" name="d"/>
+                            <xs:element type="xs:base64Binary" name="m"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="diffiehellman">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element type="xs:base64Binary" name="p1"/>
+                            <xs:element type="xs:base64Binary" name="p2"/>
+                            <xs:element type="xs:base64Binary" name="c"/>
+                            <xs:element type="xs:base64Binary" name="m"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
+        </xs:complexType>
+    </xs:element>
 </xs:schema>
