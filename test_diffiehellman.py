@@ -3,11 +3,11 @@
 __author__ = 'shunghsiyu'
 
 import os
-import random
 import string
 import unittest
 from diffiehellman import DiffieHellman
 from Crypto import Random
+from Crypto.Random import random
 from Crypto.PublicKey import ElGamal
 from Crypto.PublicKey.ElGamal import ElGamalobj
 
@@ -34,8 +34,12 @@ class TestDiffieHellman(unittest.TestCase):
             f.write(export_key(keyA))
         with open(cls.A+'.pub', 'w') as f:
             f.write(export_key(keyA.publickey()))
+
+        x = random.randint(1+1, keyA.p-1-1)
+        y = pow(keyA.g, x, keyA.p)
+        tup = (keyA.p, keyA.g, x, y)
         with open(cls.B+'.pub', 'w') as f:
-            keyB = ElGamal.generate(cls.NUM_BITS, Random.new().read)
+            keyB = ElGamal.construct(tup)
             f.write(export_key(keyB.publickey()))
 
     @classmethod
