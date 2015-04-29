@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from Finder.Containers_and_folders import container
-from gen import containerxml
+from gen import containerxml, payloadxml
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import ElGamal
 from Crypto.Util import number
+from Crypto.Random import random
 from original import Original
 import pyxb
 
@@ -19,43 +19,49 @@ class DiffieHellman(Original):
         self._n = 16
 
     def enc(self, data, A, B):
-
         N = Random.get_random_bytes(self._n)
-        kAB_num = pow(self.publickey(B).y, self.privatekey().x, self.privatekey().p)
-        kAB = number.long_to_bytes(kAB_num)
-        ksess = HMAC.new(kAB, '\x00'+N, SHA256).digest()
-        ksess2 = HMAC.new(kAB, '\x01'+N, SHA256).digest()
+        mkAB_int = pow(self.publickey(B).y, self.privatekey().x, self.privatekey().p)
+        mkAB = number.long_to_bytes(mkAB_int)
+        skAB = HMAC.new(mkAB, N, SHA256).digest()
 
-        aes = AES.new(ksess, AES.MODE_CTR, counter=self._ctr())
-        ABdata_serialized = containerxml.container(pyxb.BIND(a=A, b=B, data=data)).toxml('utf-8')
-        C = aes.encrypt(ABdata_serialized)
+        K = random.randint(1+1, self.privatekey().p-1-1)
+        ANdata_serialized = containerxml.container(pyxb.BIND(a=A, n=N, data=data)).toxml('utf-8')
+        print(ANdata_serialized)
+        t = Random.get_random_bytes(self._n)
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
+        C = aest.encrypt(ANdata_serialized)
 
-        CN_serialized = containerxml.container(pyxb.BIND(c=C, n=N)).toxml('utf-8')
-        M = HMAC.new(ksess2, CN_serialized, SHA256).digest()
+        P = self.publickey(B).encrypt(t, K)
+        assert len(P) == 2
+        M = HMAC.new(skAB, ''.join(P), SHA256).digest()
 
-        payload = (C, N, M)
-        return payload
+        payload_serialized = payloadxml.payload(pyxb.BIND(p1=P[0], p2=P[1], c=C, m=M)).toxml('utf-8')
+        return payload_serialized
 
     def dec(self, payload_serialized):
-        C = payload_serialized[0]
-        N = payload_serialized[1]
-        M = payload_serialized[2]
+        payload = payloadxml.CreateFromDocument(payload_serialized)
+        P1 = str(payload.diffiehellman.p1)
+        P2 = str(payload.diffiehellman.p2)
+        P = (P1, P2)
+        C = payload.diffiehellman.c
+        M = payload.diffiehellman.m
 
-        # TODO: get public key
-        kAB_num = pow(self.privatekey().y, self.privatekey().x, self.privatekey().p)
-        kAB = number.long_to_bytes(kAB_num)
-        ksess = HMAC.new(kAB, '\x00'+N, SHA256).digest()
-        ksess2 = HMAC.new(kAB, '\x01'+N, SHA256).digest()
+        t = self.privatekey().decrypt(P)
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
+        ANdata_serialized = aest.decrypt(C)
+        print(ANdata_serialized)
+        ANdata = containerxml.CreateFromDocument(ANdata_serialized)
+        A = ANdata.diffiehellman.a
+        N = ANdata.diffiehellman.n
+        data = ANdata.diffiehellman.data
 
-        aes = AES.new(ksess, AES.MODE_CTR, counter=self._ctr())
-        ABdata = containerxml.CreateFromDocument(aes.decrypt(C))
-        A = ABdata.diffiehellman.a
-        B = ABdata.diffiehellman.b
-        data = ABdata.diffiehellman.data
+        mkAB_int = pow(self.publickey(A).y, self.privatekey().x, self.privatekey().p)
+        mkAB = number.long_to_bytes(mkAB_int)
+        skAB = HMAC.new(mkAB, N, SHA256).digest()
 
-        CN_serialized = containerxml.container(pyxb.BIND(c=C, n=N)).toxml('utf-8')
-        M_calculated = HMAC.new(ksess2, CN_serialized, SHA256).digest()
-        assert M == M_calculated
+        M_calculated = HMAC.new(skAB, ''.join(P), SHA256).digest()
+        if M != M_calculated:
+            raise RuntimeError('MAC is invalid')
 
         return data
 
