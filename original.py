@@ -44,14 +44,14 @@ class Original(object):
         hmac = HMAC.new(k, D, SHA256)
         M = hmac.digest()
 
-        ABk_serialized = containerxml.container(A, B, k).toxml('utf-8')
+        ABk_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k)).toxml('utf-8')
         hashABk = SHA256.new(ABk_serialized)
         S = signer.sign(hashABk)
 
         t = Random.get_random_bytes(self._n)
         aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
 
-        ABkS_serialized = containerxml.container(A, B, k, S).toxml('utf-8')
+        ABkS_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k, s=S)).toxml('utf-8')
         H = aest.encrypt(ABkS_serialized)
         payload = payloadxml.payload()
         assert isinstance(payload, payloadxml.CTD_ANON)
@@ -76,10 +76,10 @@ class Original(object):
         ABkS = containerxml.CreateFromDocument(ABkS_serialized)
         assert isinstance(ABkS, containerxml.CTD_ANON)
 
-        k = ABkS.k
-        A = ABkS.a
-        B = ABkS.b
-        S = ABkS.s
+        k = ABkS.original.k
+        A = ABkS.original.a
+        B = ABkS.original.b
+        S = ABkS.original.s
         if not self._checkABk(A, B, k, S):
             raise RuntimeError('Signature and data does not match')
 
@@ -104,7 +104,7 @@ class Original(object):
         verifier = PKCS1_PSS.new(pubA)
         assert isinstance(verifier, PSS_SigScheme)
 
-        ABk_serialized = containerxml.container(A, B, k).toxml('utf-8')
+        ABk_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k)).toxml('utf-8')
         hashABk = SHA256.new(ABk_serialized)
         if not verifier.verify(hashABk, S):
             passed = False
