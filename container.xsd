@@ -16,16 +16,8 @@
                 <xs:complexType>
                     <xs:sequence>
                         <xs:element type="xs:string" name="a"/>
-                        <xs:element type="xs:string" name="b"/>
-                        <xs:element type="xs:base64Binary" name="data"/>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="cn">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element type="xs:base64Binary" name="c"/>
                         <xs:element type="xs:base64Binary" name="n"/>
+                        <xs:element type="xs:base64Binary" name="data"/>
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
