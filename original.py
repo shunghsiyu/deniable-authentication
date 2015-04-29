@@ -53,12 +53,9 @@ class Original(object):
 
         ABkS_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k, s=S)).toxml('utf-8')
         H = aest.encrypt(ABkS_serialized)
-        payload = payloadxml.payload()
-        assert isinstance(payload, payloadxml.CTD_ANON)
         cs = rsa.encrypt(t)
-        payload.h = pyxb.BIND(H, csession=base64.b64encode(cs), iv=self._iv)
-        payload.d = D
-        payload.m = M
+        h = pyxb.BIND(H, csession=base64.b64encode(cs), iv=self._iv)
+        payload = payloadxml.payload(pyxb.BIND(h=h, d=D, m=M))
         return payload.toxml('utf-8')
 
     def dec(self, payload_serialized):
@@ -69,9 +66,9 @@ class Original(object):
         assert isinstance(priB, _RSAobj)
         rsa = PKCS1_OAEP.new(priB, SHA256)
         assert isinstance(rsa, PKCS1OAEP_Cipher)
-        H = payload.h.value()
-        t = rsa.decrypt(payload.h.csession)
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.h.iv))
+        H = payload.original.h.value()
+        t = rsa.decrypt(payload.original.h.csession)
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.original.h.iv))
         ABkS_serialized = aest.decrypt(H)
         ABkS = containerxml.CreateFromDocument(ABkS_serialized)
         assert isinstance(ABkS, containerxml.CTD_ANON)
@@ -83,8 +80,8 @@ class Original(object):
         if not self._checkABk(A, B, k, S):
             raise RuntimeError('Signature and data does not match')
 
-        D = payload.d
-        M = payload.m
+        D = payload.original.d
+        M = payload.original.m
         if not self._checkDM(k, D, M):
             raise RuntimeError('MAC and the message does not match')
 
