@@ -4,6 +4,7 @@ import unittest
 import random
 import string
 import os
+import pyxb
 from gen import containerxml
 from original import Original
 from Crypto.PublicKey import RSA
@@ -41,13 +42,13 @@ class TestOriginal(unittest.TestCase):
         B = 'B'
         k = bin(random.getrandbits(n_bits))
         S = bin(random.getrandbits(n_bits))
-        serialized = containerxml.container(A,B, k, S).toxml('utf-8')
+        serialized = containerxml.container(pyxb.BIND(a=A,b=B, k=k, s=S)).toxml('utf-8')
         unserialized = containerxml.CreateFromDocument(serialized)
         self.assertIsInstance(unserialized, containerxml.CTD_ANON)
-        self.assertEqual(unserialized.a, A)
-        self.assertEqual(unserialized.b, B)
-        self.assertEqual(unserialized.k, k)
-        self.assertEqual(unserialized.s, S)
+        self.assertEqual(unserialized.original.a, A)
+        self.assertEqual(unserialized.original.b, B)
+        self.assertEqual(unserialized.original.k, k)
+        self.assertEqual(unserialized.original.s, S)
 
     def test_enc_toself(self):
         data = '123'
