@@ -27,36 +27,52 @@ class Original(object):
         return Counter.new(128, initial_value=iv)
 
     def enc(self, data, A, B):
-        priA = self.privatekey()
-        assert isinstance(priA, _RSAobj)
-        pubB = self.publickey(B)
-        assert isinstance(pubB, _RSAobj)
-        signer = PKCS1_PSS.new(priA)
-        assert isinstance(signer, PSS_SigScheme)
-        rsa = PKCS1_OAEP.new(pubB, SHA256)
-        assert isinstance(rsa, PKCS1OAEP_Cipher)
-
+        # 1) Pick a random session key
+        ## krand <- {0, 1}^n
         k = Random.get_random_bytes(self._n)
 
+        # 2) Encrypt data
+        ## D <- e[data]krand
         aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr())
         D = aesk.encrypt(data)
 
+        # 3) Calculate message authentication code of the ciphertext
+        ## M = MAC(krand, D)
         hmac = HMAC.new(k, D, SHA256)
         M = hmac.digest()
 
+        # 4.1) Serialize A, B and krand
         ABk_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k)).toxml('utf-8')
+
+        # 4.2) Sign the serialization of a container with A, B and krand
+        ## S <- signA(A, B, krand)
+        priA = self.privatekey()
+        signer = PKCS1_PSS.new(priA)
         hashABk = SHA256.new(ABk_serialized)
         S = signer.sign(hashABk)
 
+        # 5.1) Serialize A, B, krand and S
+        ABkS_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k, s=S)).toxml('utf-8')
+
+        # 5.2) Generate an AES session key t
         t = Random.get_random_bytes(self._n)
         aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
 
-        ABkS_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k, s=S)).toxml('utf-8')
+        # 5.3) Encrypt A, B, krand and S using AES with session key t
+        ## H <- e[A, B, krand, S]kt
         H = aest.encrypt(ABkS_serialized)
+
+        # 5.4) Encrypt session key t with public key of receiver
+        ## cs <- E{kt}pubB
+        pubB = self.publickey(B)
+        rsa = PKCS1_OAEP.new(pubB, SHA256)
         cs = rsa.encrypt(t)
+
+        # 6) Serialize H (with cs), D and M
+        ## payload = H||D||M
         h = pyxb.BIND(H, csession=base64.b64encode(cs), iv=self._iv)
-        payload = payloadxml.payload(pyxb.BIND(h=h, d=D, m=M))
-        return payload.toxml('utf-8')
+        payload_serialized = payloadxml.payload(pyxb.BIND(h=h, d=D, m=M)).toxml('utf-8')
+        return payload_serialized
 
     def dec(self, payload_serialized):
         payload = payloadxml.CreateFromDocument(payload_serialized)
