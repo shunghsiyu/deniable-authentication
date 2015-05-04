@@ -2,12 +2,9 @@
 # -*- coding: utf-8 -*-
 from Crypto import Random
 from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.Cipher.PKCS1_OAEP import PKCS1OAEP_Cipher
 from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import RSA
-from Crypto.PublicKey.RSA import _RSAobj
 from Crypto.Signature import PKCS1_PSS
-from Crypto.Signature.PKCS1_PSS import PSS_SigScheme
 from Crypto.Util import Counter
 from gen import original_payloadxml as payloadxml, original_containerxml as containerxml
 import base64
@@ -75,79 +72,44 @@ class Original(object):
         return payload_serialized
 
     def dec(self, payload_serialized):
-        # Deserialize payload
+        # Deserialize payload and obtain C, csession, hmac and iv
         payload = payloadxml.CreateFromDocument(payload_serialized)
+        C = payload.c.value()
+        csession = payload.c.csession
+        hmac = payload.c.hmac
+        iv = payload.c.iv
 
         # Decrypt AES session key t with the receiver's private key
         priB = self.privatekey()
         rsa = PKCS1_OAEP.new(priB, SHA256)
-        t = rsa.decrypt(payload.h.csession)
+        t = rsa.decrypt(csession)
 
-        # Decrypt cipher-text H with AES session key t to obtain
-        # the serialized container with A, B, krand and S
-        H = payload.h.value()
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.h.iv))
-        ABkS_serialized = aest.decrypt(H)
+        # Check C against its HMAC
+        hmac_calculated = HMAC.new(t, C, SHA256).digest()
+        if not self.isEqual(hmac_calculated, hmac):
+            raise RuntimeError('HMAC does not match C')
 
-        # Deserialize the container with A, B, krand and S
-        # and retrieve values of A, B, krand and S
-        ABkS = containerxml.CreateFromDocument(ABkS_serialized)
-        k = ABkS.k
-        A = ABkS.a
-        B = ABkS.b
-        S = ABkS.s
+        # Decrypt cipher-text C with AES session key t to obtain
+        # the serialized container with A, N, S and data
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(iv))
+        ANSdata_serialized = aest.decrypt(C)
 
-        # Checks A, B, krand against signature S
-        if not self._checkABk(A, B, k, S):
-            raise RuntimeError('Signature and data does not match')
+        # Deserialize the container with A, N, S and data
+        # and retrieve values of A, N, S and data
+        ANSdata = containerxml.CreateFromDocument(ANSdata_serialized)
+        A = ANSdata.a
+        N = ANSdata.n
+        S = ANSdata.s
+        data = ANSdata.data
 
-        # Retrieve values of D and M
-        D = payload.d
-        M = payload.m
-
-        # Checks HMAC of D with key krand against M
-        if not self._checkDM(k, D, M):
-            raise RuntimeError('MAC and the message does not match')
-
-        # Decrypt cipher-text D to retrieve data
-        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr())
-        data = aesk.decrypt(D)
-        return data
-
-    def _checkABk(self, A, B, k, S):
-        passed = True
-
-        # Abort if this program is not the targeted receiver
-        if B != self._identity:
-            passed = False
-            return passed
-
-        # TODO: check if the program is willing to receive stuff from A
-
-        # Serialize A, B and krand the same way enc() serialize it
-        # and calculate its hash value
-        ABk_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k)).toxml('utf-8')
-        hashABk = SHA256.new(ABk_serialized)
-
-        # Obtain the public key of the sender to verify that the hash value
-        # matches the signature
+        # Verify the signature S against B and N
         pubA = self.publickey(A)
         verifier = PKCS1_PSS.new(pubA)
+        hashBN = SHA256.new(''.join([self._identity, N]))
+        if not verifier.verify(hashBN, S):
+            raise RuntimeError('S does not match B and N')
 
-        # Return true if the signature matches the hash value
-        # and false if otherwise
-        if not verifier.verify(hashABk, S):
-            passed = False
-        return passed
-
-    def _checkDM(self, k, D, M):
-        passed = True
-
-        hmac = HMAC.new(k, D, SHA256)
-        if M != hmac.digest():
-            passed = False
-
-        return passed
+        return data
 
     def publickey(self, target):
         with open(target+'.pub', 'r') as f:
@@ -158,3 +120,16 @@ class Original(object):
         with open(self._identity, 'r') as f:
             privatekey = RSA.importKey(f.read())
         return privatekey
+
+    def isEqual(self, a, b):
+        # Mitigate timing attack
+        # from: http://codahale.com/a-lesson-in-timing-attacks/
+
+        if len(a) != len(b):
+            return False
+
+        result = 0
+        for x, y in zip(a, b):
+            result |= ord(x) ^ ord(y)
+
+        return result == 0
