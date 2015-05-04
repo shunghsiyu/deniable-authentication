@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from gen import containerxml, payloadxml
+from gen import diffiehellman_containerxml as containerxml, diffiehellman_payloadxml as payloadxml
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
@@ -25,36 +25,37 @@ class DiffieHellman(Original):
         skAB = number.long_to_bytes(number.bytes_to_long(mkAB) ^ number.bytes_to_long(N))
 
         K = random.randint(1+1, self.privatekey().p-1-1)
-        ANdata_serialized = containerxml.container(pyxb.BIND(a=A, n=N, data=data)).toxml('utf-8')
-        print(ANdata_serialized)
+        ANdata_serialized = containerxml.container(a=A, n=N, data=data).toxml('utf-8')
         t = Random.get_random_bytes(self._n)
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
+        iv = self._iv()
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(iv))
         C = aest.encrypt(ANdata_serialized)
 
         P = self.publickey(B).encrypt(t, K)
         assert len(P) == 2
         M = HMAC.new(skAB, ''.join(P), SHA256).digest()
 
-        payload_serialized = payloadxml.payload(pyxb.BIND(p1=P[0], p2=P[1], c=C, m=M)).toxml('utf-8')
+        payload_serialized = payloadxml.payload(p1=P[0], p2=P[1], c=C, m=M).toxml('utf-8')
         return payload_serialized
 
     def dec(self, payload_serialized):
         payload = payloadxml.CreateFromDocument(payload_serialized)
-        P1 = str(payload.diffiehellman.p1)
-        P2 = str(payload.diffiehellman.p2)
+        P1 = str(payload.p1)
+        P2 = str(payload.p2)
         P = (P1, P2)
-        C = payload.diffiehellman.c
-        M = payload.diffiehellman.m
+        C = payload.c
+        M = payload.m
 
         t = self.privatekey().decrypt(P)
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
+        iv = self._iv()
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(iv))
         ANdata_serialized = aest.decrypt(C)
         print(ANdata_serialized)
         # TODO: Mitigate timing-attack
         ANdata = containerxml.CreateFromDocument(ANdata_serialized)
-        A = ANdata.diffiehellman.a
-        N = ANdata.diffiehellman.n
-        data = ANdata.diffiehellman.data
+        A = ANdata.a
+        N = ANdata.n
+        data = ANdata.data
 
         mkAB_int = pow(self.publickey(A).y, self.privatekey().x, self.privatekey().p)
         mkAB = number.long_to_bytes(mkAB_int)
