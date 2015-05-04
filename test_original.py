@@ -45,10 +45,10 @@ class TestOriginal(unittest.TestCase):
         serialized = containerxml.container(a=A, n=N, s=S, data=data).toxml('utf-8')
         unserialized = containerxml.CreateFromDocument(serialized)
         self.assertIsInstance(unserialized, containerxml.CTD_ANON)
-        self.assertEqual(unserialized.original.a, A)
-        self.assertEqual(unserialized.original.n, N)
-        self.assertEqual(unserialized.original.s, S)
-        self.assertEqual(unserialized.original.data, data)
+        self.assertEqual(unserialized.a, A)
+        self.assertEqual(unserialized.n, N)
+        self.assertEqual(unserialized.s, S)
+        self.assertEqual(unserialized.data, data)
 
     def test_enc_toself(self):
         data = '123'
