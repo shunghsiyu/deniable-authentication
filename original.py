@@ -75,50 +75,67 @@ class Original(object):
         return payload_serialized
 
     def dec(self, payload_serialized):
+        # Deserialize payload
         payload = payloadxml.CreateFromDocument(payload_serialized)
-        assert isinstance(payload, payloadxml.CTD_ANON)
 
+        # Decrypt AES session key t with the receiver's private key
         priB = self.privatekey()
-        assert isinstance(priB, _RSAobj)
         rsa = PKCS1_OAEP.new(priB, SHA256)
-        assert isinstance(rsa, PKCS1OAEP_Cipher)
-        H = payload.original.h.value()
         t = rsa.decrypt(payload.original.h.csession)
+
+        # Decrypt cipher-text H with AES session key t to obtain
+        # the serialized container with A, B, krand and S
+        H = payload.original.h.value()
         aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.original.h.iv))
         ABkS_serialized = aest.decrypt(H)
-        ABkS = containerxml.CreateFromDocument(ABkS_serialized)
-        assert isinstance(ABkS, containerxml.CTD_ANON)
 
+        # Deserialize the container with A, B, krand and S
+        # and retrieve values of A, B, krand and S
+        ABkS = containerxml.CreateFromDocument(ABkS_serialized)
         k = ABkS.original.k
         A = ABkS.original.a
         B = ABkS.original.b
         S = ABkS.original.s
+
+        # Checks A, B, krand against signature S
         if not self._checkABk(A, B, k, S):
             raise RuntimeError('Signature and data does not match')
 
+        # Retrieve values of D and M
         D = payload.original.d
         M = payload.original.m
+
+        # Checks HMAC of D with key krand against M
         if not self._checkDM(k, D, M):
             raise RuntimeError('MAC and the message does not match')
 
+        # Decrypt cipher-text D to retrieve data
         aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr())
         data = aesk.decrypt(D)
         return data
 
     def _checkABk(self, A, B, k, S):
         passed = True
+
+        # Abort if this program is not the targeted receiver
         if B != self._identity:
             passed = False
+            return passed
 
         # TODO: check if the program is willing to receive stuff from A
 
-        pubA = self.publickey(A)
-        assert isinstance(pubA, _RSAobj)
-        verifier = PKCS1_PSS.new(pubA)
-        assert isinstance(verifier, PSS_SigScheme)
-
+        # Serialize A, B and krand the same way enc() serialize it
+        # and calculate its hash value
         ABk_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k)).toxml('utf-8')
         hashABk = SHA256.new(ABk_serialized)
+
+        # Obtain the public key of the sender to verify that the hash value
+        # matches the signature
+        pubA = self.publickey(A)
+        verifier = PKCS1_PSS.new(pubA)
+
+        # Return true if the signature matches the hash value
+        # and false if otherwise
         if not verifier.verify(hashABk, S):
             passed = False
         return passed
