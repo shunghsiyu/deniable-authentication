@@ -5,7 +5,7 @@ import random
 import string
 import os
 import pyxb
-from gen import containerxml
+from gen import original_containerxml as containerxml
 from original import Original
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey.RSA import _RSAobj
@@ -39,16 +39,16 @@ class TestOriginal(unittest.TestCase):
     def test_serialize_container(self):
         n_bits = 256
         A = 'A'
-        B = 'B'
-        k = bin(random.getrandbits(n_bits))
+        N = bin(random.getrandbits(n_bits))
         S = bin(random.getrandbits(n_bits))
-        serialized = containerxml.container(pyxb.BIND(a=A,b=B, k=k, s=S)).toxml('utf-8')
+        data = bin(random.getrandbits(n_bits))
+        serialized = containerxml.container(a=A, n=N, s=S, data=data).toxml('utf-8')
         unserialized = containerxml.CreateFromDocument(serialized)
         self.assertIsInstance(unserialized, containerxml.CTD_ANON)
         self.assertEqual(unserialized.original.a, A)
-        self.assertEqual(unserialized.original.b, B)
-        self.assertEqual(unserialized.original.k, k)
+        self.assertEqual(unserialized.original.n, N)
         self.assertEqual(unserialized.original.s, S)
+        self.assertEqual(unserialized.original.data, data)
 
     def test_enc_toself(self):
         data = '123'

@@ -9,7 +9,7 @@ from Crypto.PublicKey.RSA import _RSAobj
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Signature.PKCS1_PSS import PSS_SigScheme
 from Crypto.Util import Counter
-from gen import payloadxml, containerxml
+from gen import original_payloadxml as payloadxml, original_containerxml as containerxml
 import base64
 import pyxb
 
@@ -19,7 +19,9 @@ class Original(object):
     def __init__(self, identity):
         self._identity = identity
         self._n = 16
-        self._iv = 1L
+
+    def _iv(self):
+        return 1L
 
     def _ctr(self, iv=None):
         if iv is None:
@@ -27,51 +29,49 @@ class Original(object):
         return Counter.new(128, initial_value=iv)
 
     def enc(self, data, A, B):
-        # 1) Pick a random session key
-        ## krand <- {0, 1}^n
-        k = Random.get_random_bytes(self._n)
+        # 0) Ensure the encoding of A and B is UTF-8
+        A = unicode(A).encode('utf-8')
+        B = unicode(B).encode('utf-8')
 
-        # 2) Encrypt data
-        ## D <- e[data]krand
-        aesk = AES.new(k, AES.MODE_CTR, counter=self._ctr())
-        D = aesk.encrypt(data)
+        # 1) Pick a random nonce
+        # N_A <- {0, 1}^n
+        N = Random.get_random_bytes(self._n)
 
-        # 3) Calculate message authentication code of the ciphertext
-        ## M = MAC(krand, D)
-        hmac = HMAC.new(k, D, SHA256)
-        M = hmac.digest()
-
-        # 4.1) Serialize A, B and krand
-        ABk_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k)).toxml('utf-8')
-
-        # 4.2) Sign the serialization of a container with A, B and krand
-        ## S <- signA(A, B, krand)
+        # 2) Sign to value of B concatenated with N_A
+        # S <- sign_A(B, N_A)
         priA = self.privatekey()
         signer = PKCS1_PSS.new(priA)
-        hashABk = SHA256.new(ABk_serialized)
-        S = signer.sign(hashABk)
+        hashBN = SHA256.new(''.join([B, N]))
+        S = signer.sign(hashBN)
 
-        # 5.1) Serialize A, B, krand and S
-        ABkS_serialized = containerxml.container(pyxb.BIND(a=A, b=B, k=k, s=S)).toxml('utf-8')
+        # 3) CCA-Secure encryption of A, N, S and data
+        # C <- E_pub_B(A, N_A, S, data)
+        ## 3.1) Serialize A, N, S and data
+        ANSdata_serialized = containerxml.container(a=A, n=N, s=S, data=data).toxml('utf-8')
 
-        # 5.2) Generate an AES session key t
+        ## 3.2) Encrypt serialized data
+        ### 3.2.1) Generate an AES session key t
         t = Random.get_random_bytes(self._n)
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
 
-        # 5.3) Encrypt A, B, krand and S using AES with session key t
-        ## H <- e[A, B, krand, S]kt
-        H = aest.encrypt(ABkS_serialized)
+        ### 3.2.2) Generate a random IV
+        iv = self._iv()
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(iv))
 
-        # 5.4) Encrypt session key t with public key of receiver
-        ## cs <- E{kt}pubB
+        ### 3.2.3) Encrypt data to obtain ciphertext of serialization
+        C = aest.encrypt(ANSdata_serialized)
+
+        ### 3.2.4) Calculate HMAC of cdata with secret key t (same as AES session key)
+        hmac = HMAC.new(t, C, SHA256).digest()
+
+        ### 3.2.5) Encrypt session key t with RSA-OAEP
         pubB = self.publickey(B)
         rsa = PKCS1_OAEP.new(pubB, SHA256)
-        cs = rsa.encrypt(t)
+        csession = rsa.encrypt(t)
 
-        # 6) Serialize H (with cs), D and M
-        ## payload = H||D||M
-        h = pyxb.BIND(H, csession=base64.b64encode(cs), iv=self._iv)
-        payload_serialized = payloadxml.payload(pyxb.BIND(h=h, d=D, m=M)).toxml('utf-8')
+        # 4) Prepare the payload
+        c = pyxb.BIND(C, hmac=base64.b64encode(hmac), csession=base64.b64encode(csession), iv=iv)
+        payload_serialized = payloadxml.payload(c=c).toxml('utf-8')
+
         return payload_serialized
 
     def dec(self, payload_serialized):
@@ -81,29 +81,29 @@ class Original(object):
         # Decrypt AES session key t with the receiver's private key
         priB = self.privatekey()
         rsa = PKCS1_OAEP.new(priB, SHA256)
-        t = rsa.decrypt(payload.original.h.csession)
+        t = rsa.decrypt(payload.h.csession)
 
         # Decrypt cipher-text H with AES session key t to obtain
         # the serialized container with A, B, krand and S
-        H = payload.original.h.value()
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.original.h.iv))
+        H = payload.h.value()
+        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(payload.h.iv))
         ABkS_serialized = aest.decrypt(H)
 
         # Deserialize the container with A, B, krand and S
         # and retrieve values of A, B, krand and S
         ABkS = containerxml.CreateFromDocument(ABkS_serialized)
-        k = ABkS.original.k
-        A = ABkS.original.a
-        B = ABkS.original.b
-        S = ABkS.original.s
+        k = ABkS.k
+        A = ABkS.a
+        B = ABkS.b
+        S = ABkS.s
 
         # Checks A, B, krand against signature S
         if not self._checkABk(A, B, k, S):
             raise RuntimeError('Signature and data does not match')
 
         # Retrieve values of D and M
-        D = payload.original.d
-        M = payload.original.m
+        D = payload.d
+        M = payload.m
 
         # Checks HMAC of D with key krand against M
         if not self._checkDM(k, D, M):
