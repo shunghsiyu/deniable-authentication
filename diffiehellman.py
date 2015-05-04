@@ -19,10 +19,10 @@ class DiffieHellman(Original):
         self._n = 16
 
     def enc(self, data, A, B):
-        N = Random.get_random_bytes(self._n)
         mkAB_int = pow(self.publickey(B).y, self.privatekey().x, self.privatekey().p)
         mkAB = number.long_to_bytes(mkAB_int)
-        skAB = HMAC.new(mkAB, N, SHA256).digest()
+        N = Random.get_random_bytes(len(mkAB))
+        skAB = number.long_to_bytes(number.bytes_to_long(mkAB) ^ number.bytes_to_long(N))
 
         K = random.randint(1+1, self.privatekey().p-1-1)
         ANdata_serialized = containerxml.container(pyxb.BIND(a=A, n=N, data=data)).toxml('utf-8')
@@ -50,6 +50,7 @@ class DiffieHellman(Original):
         aest = AES.new(t, AES.MODE_CTR, counter=self._ctr())
         ANdata_serialized = aest.decrypt(C)
         print(ANdata_serialized)
+        # TODO: Mitigate timing-attack
         ANdata = containerxml.CreateFromDocument(ANdata_serialized)
         A = ANdata.diffiehellman.a
         N = ANdata.diffiehellman.n
@@ -57,7 +58,7 @@ class DiffieHellman(Original):
 
         mkAB_int = pow(self.publickey(A).y, self.privatekey().x, self.privatekey().p)
         mkAB = number.long_to_bytes(mkAB_int)
-        skAB = HMAC.new(mkAB, N, SHA256).digest()
+        skAB = number.long_to_bytes(number.bytes_to_long(mkAB) ^ number.bytes_to_long(N))
 
         M_calculated = HMAC.new(skAB, ''.join(P), SHA256).digest()
         if M != M_calculated:
@@ -66,6 +67,7 @@ class DiffieHellman(Original):
         return data
 
     def publickey(self, target):
+        # TODO: Work on both certificate and name
         with open(target+'.pub', 'r') as f:
             publickey = ElGamal.construct(tuple(int(value) for value in f.read().splitlines()))
         return publickey
