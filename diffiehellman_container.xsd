@@ -3,7 +3,8 @@
       <xs:complexType>
           <xs:sequence>
               <xs:element type="xs:string" name="a"/>
-              <xs:element type="xs:base64Binary" name="n"/>
+              <xs:element type="xs:base64Binary" name="r"/>
+              <xs:element type="xs:base64Binary" name="k"/>
               <xs:element type="xs:base64Binary" name="data"/>
           </xs:sequence>
       </xs:complexType>
