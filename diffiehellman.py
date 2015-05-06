@@ -28,42 +28,38 @@ class DiffieHellman(Original):
         r = Random.get_random_bytes(self._n)
         r_int = number.bytes_to_long(r)
 
-        # 2) Generate master key for B
+        # 2) Generate session key k_AB
+        ## 2.1) Generate PRF key prf_key
         # mk_AB = (g^X_B)^X_A
         mkAB_int = pow(self.publickey(B).y, self.privatekey().x, self.privatekey().p)
+        mkAB = number.long_to_bytes(mkAB_int)
 
-        # 3) Generate session key k_AB
-        ## 3.1) Generate PRF key prf_key
-        ## k = (mk_AB)^r
-        prf_key_int = pow(mkAB_int, r_int, self.privatekey().p)
-        prf_key = number.long_to_bytes(prf_key_int)
+        ## 2.2) Calcuate the session key with HMAC with prf_key as key
+        k = HMAC.new(mkAB, r, SHA256).digest()
 
-        ## 3.2) Calcuate the session key with HMAC with prf_key as key
-        k = HMAC.new(prf_key, 0, SHA256).digest()
-
-        # 4) Encrypt A, r, k and data with public key of the receiver
-        ## 4.1) Serialize A, r, k and data
+        # 3) Encrypt A, r, k and data with public key of the receiver
+        ## 3.1) Serialize A, r, k and data
         Arkdata_serialized = containerxml.container(a=A, r=r, k=k, data=data).toxml('utf-8')
 
-        ## 4.2) Generate keys for AES and HMAC
-        ### 4.2.1) Generate a main key t
+        ## 3.2) Generate keys for AES and HMAC
+        ### 3.2.1) Generate a main key t
         t = Random.get_random_bytes(self._n)
 
-        ### 4.2.2) Derive hmac_key and aes_key from t
+        ### 3.2.2) Derive hmac_key and aes_key from t
         hmac_key = HMAC.new(t, '\x00', SHA256).digest()
         aes_key  = HMAC.new(t, '\x01', SHA256).digest()
 
-        ## 4.3) Encrypt serialized A, r, k and data using AES with aes_key as key
+        ## 3.3) Encrypt serialized A, r, k and data using AES with aes_key as key
         iv = self._iv()
         aest = AES.new(aes_key, AES.MODE_CTR, counter=self._ctr(iv))
         C = aest.encrypt(Arkdata_serialized)
 
-        ## 4.4) Encrypt main key t using ElGamal with public key of receiver
+        ## 3.4) Encrypt main key t using ElGamal with public key of receiver
         nonce = random.randint(1+1, self.privatekey().p-1-1)
         csession_tuple = self.publickey(B).encrypt(t, nonce)
         csession = ''.join(csession_tuple)
 
-        ## 4.5) Calculate the MAC of csession and C
+        ## 3.5) Calculate the MAC of csession and C
         mac = HMAC.new(hmac_key, ''.join([csession, C]), SHA256).digest()
 
         c = pyxb.BIND(C, hmac=base64.b64encode(mac), csession=base64.b64encode(csession), iv=iv)
