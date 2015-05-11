@@ -3,14 +3,24 @@
 ## Requirements
 
 * PyCrypto
-* PyXB
+* PyXB (only for code generation)
 
 ### Setting up Virutalenv
 
-1. In the shell type `mkdir virtualenv; virtualenv --python=python2.7 ./virtualenv`
-2. Then type `source ./virtualenv/bin/activate`
-3. Then `pip install pycrypto pyxb`
-4. Then generate python source file from XML Schema files
+This step is not necessary but may help avoid python package conflicts.
+
+1. In the shell `mkdir virtualenv; virtualenv --python=python2.7 ./virtualenv`
+2. Then `source ./virtualenv/bin/activate`
+
+## Instructions
+
+### Installing Requirements
+
+1. `pip install pycrypto pyxb`
+
+### Generating XML Generator
+
+1. To generate python source file from XML Schema files use command
     * `pyxbgen -u original_container.xsd -m gen/original_containerxml`
     * `pyxbgen -u original_payload.xsd -m gen/original_payloadxml`
     * `pyxbgen -u diffiehellman_container.xsd -m gen/diffiehellman_containerxml`
