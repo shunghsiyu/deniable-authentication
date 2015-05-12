@@ -35,7 +35,7 @@ class DiffieHellman(Original):
         mkAB = number.long_to_bytes(mkAB_int)
 
         ## 2.2) Calcuate the session key with HMAC with prf_key as key
-        k = HMAC.new(mkAB, r, SHA256).digest()
+        k = HMAC.new(mkAB, ''.join([r, B]), SHA256).digest()
 
         # 3) Encrypt A, r, k and data with public key of the receiver
         ## 3.1) Serialize A, r, k and data
@@ -99,7 +99,16 @@ class DiffieHellman(Original):
         k = Arkdata.k
         data = Arkdata.data
 
-        # TODO: Anything else to check here?
+        # Generate PRF key prf_key
+        mkAB_int = pow(self.publickey(A).y, self.privatekey().x, self.privatekey().p)
+        mkAB = number.long_to_bytes(mkAB_int)
+
+        # Calcuate the session key with HMAC with prf_key as key
+        k_calculated = HMAC.new(mkAB, ''.join([r, self._identity]), SHA256).digest()
+
+        # Verify the session key
+        if not self.isEqual(k, k_calculated):
+            raise RuntimeError('Session key is invalid')
 
         return data
 
