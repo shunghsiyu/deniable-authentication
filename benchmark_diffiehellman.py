@@ -2,10 +2,9 @@ import timeit
 import sys
 __author__ = 'shunghsiyu'
 
-count = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-size = int(sys.argv[1])
 
-setup = """
+def benchmark(count, size):
+    setup = """
 import random
 import string
 import os
@@ -26,15 +25,19 @@ obj = DiffieHellman(A)
 data = Random.get_random_bytes({})
 cipher_text = obj.enc(data, A, A)
 """.format(size)
-stmt_enc = "obj.enc(data, A, A)"
-stmt_dec = "obj.dec(cipher_text)"
+    stmt_enc = "obj.enc(data, A, A)"
+    stmt_dec = "obj.dec(cipher_text)"
+    t1 = timeit.Timer(stmt=stmt_enc, setup=setup)
+    print('Test DiffieHellman ENCRYPTION with {} bytes and running {} times'.format(size, count))
+    print(t1.timeit(count) / count)
+    t2 = timeit.Timer(stmt=stmt_dec, setup=setup)
+    print('Test DiffieHellman DECRYPTION with {} bytes and running {} times'.format(size, count))
+    print(t2.timeit(count) / count)
+    print('-----')
 
-t1 = timeit.Timer(stmt=stmt_enc, setup=setup)
-print('Test DiffieHellman ENCRYPTION with {} bytes and running {} times'.format(size, count))
-print(t1.timeit(count)/count)
 
-t2 = timeit.Timer(stmt=stmt_dec, setup=setup)
-print('Test DiffieHellman DECRYPTION with {} bytes and running {} times'.format(size, count))
-print(t2.timeit(count)/count)
-
-print('-----')
+if __name__ == '__main__':
+    benchmark(100*2**10, 500)
+    benchmark(1*2**20, 100)
+    benchmark(10*2**20, 10)
+    benchmark(100*2**20, 1)
