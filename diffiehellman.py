@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from gen import diffiehellman_containerxml as containerxml, diffiehellman_payloadxml as payloadxml
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
@@ -8,8 +7,7 @@ from Crypto.PublicKey import ElGamal
 from Crypto.Util import number
 from Crypto.Random import random
 from original import Original
-import base64
-import pyxb
+import pickle
 
 __author__ = 'shunghsiyu'
 
@@ -39,7 +37,7 @@ class DiffieHellman(Original):
 
         # 3) Encrypt A, r, k and data with public key of the receiver
         ## 3.1) Serialize A, r, k and data
-        Arkdata_serialized = containerxml.container(a=A, r=r, k=k, data=data).toxml('utf-8')
+        Arkdata_serialized = pickle.dumps(dict(a=A, r=r, k=k, data=data))
 
         ## 3.2) Generate keys for AES and HMAC
         ### 3.2.1) Generate a main key t
@@ -62,17 +60,16 @@ class DiffieHellman(Original):
         ## 3.5) Calculate the MAC of csession and C
         mac = HMAC.new(hmac_key, ''.join([csession, C]), SHA256).digest()
 
-        c = pyxb.BIND(C, hmac=base64.b64encode(mac), csession=base64.b64encode(csession), iv=iv)
-        payload_serialized = payloadxml.payload(c=c).toxml('utf-8')
+        payload_serialized = pickle.dumps(dict(c=C, hmac=mac, csession=csession, iv=iv))
         return payload_serialized
 
     def dec(self, payload_serialized):
         # Deserialize payload to obtain C, IV, MAC and ciphertext of main key t (csession)
-        payload = payloadxml.CreateFromDocument(payload_serialized)
-        C = payload.c.value()
-        iv = payload.c.iv
-        mac = payload.c.hmac
-        csession = payload.c.csession
+        payload = pickle.loads(payload_serialized)
+        C = payload['c']
+        iv = payload['iv']
+        mac = payload['hmac']
+        csession = payload['csession']
         split_length = len(csession)/2
         csession_tuple = (csession[:split_length], csession[split_length:])
 
@@ -93,11 +90,11 @@ class DiffieHellman(Original):
         Arkdata_serialized = aest.decrypt(C)
 
         # Deserialize to obtain A, r, k and data
-        Arkdata = containerxml.CreateFromDocument(Arkdata_serialized)
-        A = Arkdata.a
-        r = Arkdata.r
-        k = Arkdata.k
-        data = Arkdata.data
+        Arkdata = pickle.loads(Arkdata_serialized)
+        A = Arkdata['a']
+        r = Arkdata['r']
+        k = Arkdata['k']
+        data = Arkdata['data']
 
         # Generate PRF key prf_key
         mkAB_int = pow(self.publickey(A).y, self.privatekey().x, self.privatekey().p)

@@ -6,9 +6,7 @@ from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Util import Counter
-from gen import original_payloadxml as payloadxml, original_containerxml as containerxml
-import base64
-import pyxb
+import pickle
 
 __author__ = 'shunghsiyu'
 
@@ -44,7 +42,7 @@ class Original(object):
         # 3) CCA-Secure encryption of A, N, S and data
         # C <- E_pub_B(A, N_A, S, data)
         ## 3.1) Serialize A, N, S and data
-        ANSdata_serialized = containerxml.container(a=A, n=N, s=S, data=data).toxml('utf-8')
+        ANSdata_serialized = pickle.dumps(dict(a=A, n=N, s=S, data=data))
 
         ## 3.2) Encrypt serialized data
         ### 3.2.1) Generate an AES session key t
@@ -66,18 +64,17 @@ class Original(object):
         csession = rsa.encrypt(t)
 
         # 4) Prepare the payload
-        c = pyxb.BIND(C, hmac=base64.b64encode(hmac), csession=base64.b64encode(csession), iv=iv)
-        payload_serialized = payloadxml.payload(c=c).toxml('utf-8')
+        payload_serialized = pickle.dumps(dict(c=C, hmac=hmac, csession=csession, iv=iv))
 
         return payload_serialized
 
     def dec(self, payload_serialized):
         # Deserialize payload and obtain C, csession, hmac and iv
-        payload = payloadxml.CreateFromDocument(payload_serialized)
-        C = payload.c.value()
-        csession = payload.c.csession
-        hmac = payload.c.hmac
-        iv = payload.c.iv
+        payload = pickle.loads(payload_serialized)
+        C = payload['c']
+        csession = payload['csession']
+        hmac = payload['hmac']
+        iv = payload['iv']
 
         # Decrypt AES session key t with the receiver's private key
         priB = self.privatekey()
@@ -96,11 +93,11 @@ class Original(object):
 
         # Deserialize the container with A, N, S and data
         # and retrieve values of A, N, S and data
-        ANSdata = containerxml.CreateFromDocument(ANSdata_serialized)
-        A = ANSdata.a
-        N = ANSdata.n
-        S = ANSdata.s
-        data = ANSdata.data
+        ANSdata = pickle.loads(ANSdata_serialized)
+        A = ANSdata['a']
+        N = ANSdata['n']
+        S = ANSdata['s']
+        data = ANSdata['data']
 
         # Verify the signature S against B and N
         pubA = self.publickey(A)
