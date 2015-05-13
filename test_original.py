@@ -4,11 +4,10 @@ import unittest
 import random
 import string
 import os
-import pyxb
-from gen import original_containerxml as containerxml
 from original import Original
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey.RSA import _RSAobj
+import pickle
 
 __author__ = 'shunghsiyu'
 
@@ -42,13 +41,13 @@ class TestOriginal(unittest.TestCase):
         N = bin(random.getrandbits(n_bits))
         S = bin(random.getrandbits(n_bits))
         data = bin(random.getrandbits(n_bits))
-        serialized = containerxml.container(a=A, n=N, s=S, data=data).toxml('utf-8')
-        unserialized = containerxml.CreateFromDocument(serialized)
-        self.assertIsInstance(unserialized, containerxml.CTD_ANON)
-        self.assertEqual(unserialized.a, A)
-        self.assertEqual(unserialized.n, N)
-        self.assertEqual(unserialized.s, S)
-        self.assertEqual(unserialized.data, data)
+        serialized = pickle.dumps(dict(a=A, n=N, s=S, data=data))
+        unserialized = pickle.loads(serialized)
+        self.assertIsInstance(unserialized, dict)
+        self.assertEqual(unserialized['a'], A)
+        self.assertEqual(unserialized['n'], N)
+        self.assertEqual(unserialized['s'], S)
+        self.assertEqual(unserialized['data'], data)
 
     def test_enc_toself(self):
         data = '123'
