@@ -5,7 +5,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
-from Crypto.Util import Counter
+from Crypto.Util import Counter, number
 import pickle
 
 __author__ = 'shunghsiyu'
@@ -13,14 +13,14 @@ __author__ = 'shunghsiyu'
 class Original(object):
     def __init__(self, identity):
         self._identity = identity
-        self._n = 16
+        self._n = 32
 
     def _iv(self):
-        return 1L
+        return number.bytes_to_long(Random.get_random_bytes(self._n))
 
     def _ctr(self, iv=None):
         if iv is None:
-            iv = self._iv
+            iv = self._iv()
         return Counter.new(128, initial_value=iv)
 
     def enc(self, data, A, B):
