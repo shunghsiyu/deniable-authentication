@@ -45,18 +45,20 @@ class Original(object):
         ANSdata_serialized = pickle.dumps(dict(a=A, n=N, s=S, data=data))
 
         ## 3.2) Encrypt serialized data
-        ### 3.2.1) Generate an AES session key t
+        ### 3.2.1) Generate key for HMAC and AES
         t = Random.get_random_bytes(self._n)
+        hmac_key = HMAC.new(t, '\x00', SHA256).digest()
+        aes_key  = HMAC.new(t, '\x01', SHA256).digest()
 
         ### 3.2.2) Generate a random IV
         iv = self._iv()
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(iv))
+        aest = AES.new(aes_key, AES.MODE_CTR, counter=self._ctr(iv))
 
         ### 3.2.3) Encrypt data to obtain ciphertext of serialization
         C = aest.encrypt(ANSdata_serialized)
 
         ### 3.2.4) Calculate HMAC of cdata with secret key t (same as AES session key)
-        hmac = HMAC.new(t, C, SHA256).digest()
+        hmac = HMAC.new(hmac_key, C, SHA256).digest()
 
         ### 3.2.5) Encrypt session key t with RSA-OAEP
         pubB = self.publickey(B)
@@ -64,31 +66,43 @@ class Original(object):
         csession = rsa.encrypt(t)
 
         # 4) Prepare the payload
-        payload_serialized = pickle.dumps(dict(c=C, hmac=hmac, csession=csession, iv=iv))
+        with open('c', 'wb') as f:
+            f.write(C)
+        with open('hmac', 'wb') as f:
+            f.write(hmac)
+        with open('csession', 'wb') as f:
+            f.write(csession)
+        with open('iv', 'w') as f:
+            f.write(str(iv))
 
-        return payload_serialized
+        return
 
     def dec(self, payload_serialized):
         # Deserialize payload and obtain C, csession, hmac and iv
-        payload = pickle.loads(payload_serialized)
-        C = payload['c']
-        csession = payload['csession']
-        hmac = payload['hmac']
-        iv = payload['iv']
+        with open('c', 'rb') as f:
+            C = f.read()
+        with open('hmac', 'rb') as f:
+            hmac = f.read()
+        with open('csession', 'rb') as f:
+            csession = f.read()
+        with open('iv', 'r') as f:
+            iv = long(f.read())
 
         # Decrypt AES session key t with the receiver's private key
         priB = self.privatekey()
         rsa = PKCS1_OAEP.new(priB, SHA256)
         t = rsa.decrypt(csession)
+        hmac_key = HMAC.new(t, '\x00', SHA256).digest()
+        aes_key  = HMAC.new(t, '\x01', SHA256).digest()
 
         # Check C against its HMAC
-        hmac_calculated = HMAC.new(t, C, SHA256).digest()
+        hmac_calculated = HMAC.new(hmac_key, C, SHA256).digest()
         if not self.isEqual(hmac_calculated, hmac):
             raise RuntimeError('HMAC does not match C')
 
         # Decrypt cipher-text C with AES session key t to obtain
         # the serialized container with A, N, S and data
-        aest = AES.new(t, AES.MODE_CTR, counter=self._ctr(iv))
+        aest = AES.new(aes_key, AES.MODE_CTR, counter=self._ctr(iv))
         ANSdata_serialized = aest.decrypt(C)
 
         # Deserialize the container with A, N, S and data
