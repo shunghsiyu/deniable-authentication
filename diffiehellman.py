@@ -7,6 +7,7 @@ from Crypto.PublicKey import ElGamal
 from Crypto.Util import number
 from Crypto.Random import random
 from original import Original
+import base64
 import cPickle as pickle
 
 __author__ = 'shunghsiyu'
@@ -18,6 +19,12 @@ class DiffieHellman(Original):
         self._n = 16
 
     def enc(self, data, A, B):
+        return self._enc(data, A, B)
+
+    def enc_base64(self, data, A, B):
+        return base64.b64encode(self._enc(data, A, B))
+
+    def _enc(self, data, A, B):
         # 0) Ensure the encoding of A and B is UTF-8
         A = unicode(A).encode('utf-8')
         B = unicode(B).encode('utf-8')
@@ -64,6 +71,12 @@ class DiffieHellman(Original):
         return payload_serialized
 
     def dec(self, payload_serialized):
+        return self._dec(payload_serialized)
+
+    def dec_base64(self, payload_serialized):
+        return self._dec(base64.b64decode(payload_serialized))
+
+    def _dec(self, payload_serialized):
         # Deserialize payload to obtain C, IV, MAC and ciphertext of main key t (csession)
         payload = pickle.loads(payload_serialized)
         C = payload['c']
