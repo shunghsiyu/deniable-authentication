@@ -6,6 +6,7 @@ from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Util import Counter, number
+import base64
 import pickle
 
 __author__ = 'shunghsiyu'
@@ -24,6 +25,12 @@ class Original(object):
         return Counter.new(128, initial_value=iv)
 
     def enc(self, data, A, B):
+        return self._enc(data, A, B)
+
+    def enc_base64(self, data, A, B):
+        return base64.b64encode(self._enc(data, A, B))
+
+    def _enc(self, data, A, B):
         # 0) Ensure the encoding of A and B is UTF-8
         A = unicode(A).encode('utf-8')
         B = unicode(B).encode('utf-8')
@@ -71,6 +78,12 @@ class Original(object):
         return payload_serialized
 
     def dec(self, payload_serialized):
+        return self._dec(payload_serialized)
+
+    def dec_base64(self, payload_serialized):
+        return self._dec(base64.b64decode(payload_serialized))
+
+    def _dec(self, payload_serialized):
         # Deserialize payload and obtain C, csession, hmac and iv
         payload = pickle.loads(payload_serialized)
         C = payload['c']
