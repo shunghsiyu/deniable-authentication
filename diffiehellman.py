@@ -7,7 +7,7 @@ from Crypto.PublicKey import ElGamal
 from Crypto.Util import number
 from Crypto.Random import random
 from original import Original
-import pickle
+import cPickle as pickle
 
 __author__ = 'shunghsiyu'
 
@@ -37,7 +37,7 @@ class DiffieHellman(Original):
 
         # 3) Encrypt A, r, k and data with public key of the receiver
         ## 3.1) Serialize A, r, k and data
-        Arkdata_serialized = pickle.dumps(dict(a=A, r=r, k=k, data=data))
+        Arkdata_serialized = pickle.dumps(dict(a=A, r=r, k=k, data=data), pickle.HIGHEST_PROTOCOL)
 
         ## 3.2) Generate keys for AES and HMAC
         ### 3.2.1) Generate a main key t
@@ -60,7 +60,7 @@ class DiffieHellman(Original):
         ## 3.5) Calculate the MAC of csession and C
         mac = HMAC.new(hmac_key, ''.join([csession, C]), SHA256).digest()
 
-        payload_serialized = pickle.dumps(dict(c=C, hmac=mac, csession=csession, iv=iv))
+        payload_serialized = pickle.dumps(dict(c=C, hmac=mac, csession=csession, iv=iv), pickle.HIGHEST_PROTOCOL)
         return payload_serialized
 
     def dec(self, payload_serialized):
