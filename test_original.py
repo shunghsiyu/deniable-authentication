@@ -7,7 +7,7 @@ import os
 from original import Original
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey.RSA import _RSAobj
-import pickle
+import cPickle as pickle
 
 __author__ = 'shunghsiyu'
 
