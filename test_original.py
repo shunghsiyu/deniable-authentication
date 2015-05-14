@@ -61,6 +61,18 @@ class TestOriginal(unittest.TestCase):
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
 
+    def test_enc_toself_b64(self):
+        data = '123'
+        cipher_text = Original(self.A).enc_base64(data, self.A, self.A)
+        self.assertIsNotNone(cipher_text)
+
+    def test_dec_fromself_b64(self):
+        data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
+        cipher_text = Original(self.A).enc_base64(data, self.A, self.A)
+        plain_text = Original(self.A).dec_base64(cipher_text)
+        self.assertIsNotNone(plain_text)
+        self.assertEqual(data, plain_text)
+
     def test_publickey(self):
         public_key = Original(self.A).publickey(self.B)
         self.assertIsNotNone(public_key, 'Must be able to find public key')
