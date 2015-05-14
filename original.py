@@ -42,7 +42,7 @@ class Original(object):
         # 3) CCA-Secure encryption of A, N, S and data
         # C <- E_pub_B(A, N_A, S, data)
         ## 3.1) Serialize A, N, S and data
-        ANSdata_serialized = pickle.dumps(dict(a=A, n=N, s=S, data=data))
+        ANSdata_serialized = pickle.dumps(dict(a=A, n=N, s=S, data=data), pickle.HIGHEST_PROTOCOL)
 
         ## 3.2) Encrypt serialized data
         ### 3.2.1) Generate key for HMAC and AES
@@ -66,27 +66,17 @@ class Original(object):
         csession = rsa.encrypt(t)
 
         # 4) Prepare the payload
-        with open('c', 'wb') as f:
-            f.write(C)
-        with open('hmac', 'wb') as f:
-            f.write(hmac)
-        with open('csession', 'wb') as f:
-            f.write(csession)
-        with open('iv', 'w') as f:
-            f.write(str(iv))
+        payload_serialized = pickle.dumps(dict(c=C, hmac=hmac, csession=csession, iv=iv), pickle.HIGHEST_PROTOCOL)
 
-        return
+        return payload_serialized
 
     def dec(self, payload_serialized):
         # Deserialize payload and obtain C, csession, hmac and iv
-        with open('c', 'rb') as f:
-            C = f.read()
-        with open('hmac', 'rb') as f:
-            hmac = f.read()
-        with open('csession', 'rb') as f:
-            csession = f.read()
-        with open('iv', 'r') as f:
-            iv = long(f.read())
+        payload = pickle.loads(payload_serialized)
+        C = payload['c']
+        csession = payload['csession']
+        hmac = payload['hmac']
+        iv = payload['iv']
 
         # Decrypt AES session key t with the receiver's private key
         priB = self.privatekey()
