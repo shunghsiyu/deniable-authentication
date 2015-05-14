@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 from diffiehellman import DiffieHellman
 from Crypto import Random
 import timeit

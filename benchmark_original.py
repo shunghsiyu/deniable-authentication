@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 from original import Original
 from Crypto import Random
 import timeit
