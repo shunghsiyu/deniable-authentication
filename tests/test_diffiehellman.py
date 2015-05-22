@@ -1,25 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 __author__ = 'shunghsiyu'
-
 import string
 import unittest
-
 import os
 from deniable.diffiehellman import DiffieHellman
 from Crypto import Random
 from Crypto.Random import random
 from Crypto.PublicKey import ElGamal
 from Crypto.PublicKey.ElGamal import ElGamalobj
-
-
-def export_key(key):
-    assert isinstance(key, ElGamalobj)
-    if hasattr(key, 'x'):
-        key_info = (key.p, key.g, key.y, key.x)
-    else:
-        key_info = (key.p, key.g, key.y)
-    return '\n'.join(str(n) for n in key_info)
+from deniable.utils import export_elgamal_key
 
 
 class TestDiffieHellman(unittest.TestCase):
@@ -32,16 +22,16 @@ class TestDiffieHellman(unittest.TestCase):
         cls.B = ''.join(random.choice(string.ascii_letters) for _ in range(12))
         keyA = ElGamal.generate(cls.NUM_BITS, Random.new().read)
         with open(cls.A, 'w') as f:
-            f.write(export_key(keyA))
+            f.write(export_elgamal_key(keyA))
         with open(cls.A+'.pub', 'w') as f:
-            f.write(export_key(keyA.publickey()))
+            f.write(export_elgamal_key(keyA.publickey()))
 
         x = random.randint(1+1, keyA.p-1-1)
         y = pow(keyA.g, x, keyA.p)
         tup = (keyA.p, keyA.g, x, y)
         with open(cls.B+'.pub', 'w') as f:
             keyB = ElGamal.construct(tup)
-            f.write(export_key(keyB.publickey()))
+            f.write(export_elgamal_key(keyB.publickey()))
 
     @classmethod
     def tearDownClass(cls):
