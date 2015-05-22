@@ -28,7 +28,7 @@ class TestDiffieHellman(unittest.TestCase):
 
         x = random.randint(1+1, keyA.p-1-1)
         y = pow(keyA.g, x, keyA.p)
-        tup = (keyA.p, keyA.g, x, y)
+        tup = (keyA.p, keyA.g, y, x)
         keyB = ElGamal.construct(tup)
         with open(cls.B, 'w') as f:
             f.write(export_elgamal_key(keyB))
