@@ -13,7 +13,7 @@ __author__ = 'shunghsiyu'
 
 class Original(object):
     def __init__(self, identity):
-        self._identity = identity
+        self._identity = unicode(identity).encode('utf-8')
         self._n = 32
 
     def _iv(self):
@@ -24,16 +24,16 @@ class Original(object):
             iv = self._iv()
         return Counter.new(128, initial_value=iv)
 
-    def enc(self, data, A, B):
-        return self._enc(data, A, B)
+    def enc(self, data, recipient):
+        return self._enc(data, recipient)
 
-    def enc_base64(self, data, A, B):
-        return base64.b64encode(self._enc(data, A, B))
+    def enc_base64(self, data, recipient):
+        return base64.b64encode(self._enc(data, recipient))
 
-    def _enc(self, data, A, B):
+    def _enc(self, data, recipient):
         # 0) Ensure the encoding of A and B is UTF-8
-        A = unicode(A).encode('utf-8')
-        B = unicode(B).encode('utf-8')
+        A = self._identity
+        recipient = unicode(recipient).encode('utf-8')
 
         # 1) Pick a random nonce
         # N_A <- {0, 1}^n
@@ -43,7 +43,7 @@ class Original(object):
         # S <- sign_A(B, N_A)
         priA = self.privatekey()
         signer = PKCS1_PSS.new(priA)
-        hashBN = SHA256.new(''.join([B, N]))
+        hashBN = SHA256.new(''.join([recipient, N]))
         S = signer.sign(hashBN)
 
         # 3) CCA-Secure encryption of A, N, S and data
@@ -68,7 +68,7 @@ class Original(object):
         hmac = HMAC.new(hmac_key, C, SHA256).digest()
 
         ### 3.2.5) Encrypt session key t with RSA-OAEP
-        pubB = self.publickey(B)
+        pubB = self.publickey(recipient)
         rsa = PKCS1_OAEP.new(pubB, SHA256)
         csession = rsa.encrypt(t)
 

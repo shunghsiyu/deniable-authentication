@@ -19,16 +19,16 @@ class DiffieHellman(Original):
         super(DiffieHellman, self).__init__(identity)
         self._n = 16
 
-    def enc(self, data, A, B):
-        return self._enc(data, A, B)
+    def enc(self, data, recipient):
+        return self._enc(data, recipient)
 
-    def enc_base64(self, data, A, B):
-        return base64.b64encode(self._enc(data, A, B))
+    def enc_base64(self, data, recipient):
+        return base64.b64encode(self._enc(data, recipient))
 
-    def _enc(self, data, A, B):
+    def _enc(self, data, recipient):
         # 0) Ensure the encoding of A and B is UTF-8
-        A = unicode(A).encode('utf-8')
-        B = unicode(B).encode('utf-8')
+        A = self._identity
+        recipient = unicode(recipient).encode('utf-8')
 
         # 1) Pick a random value r
         r = Random.get_random_bytes(self._n)
@@ -37,11 +37,11 @@ class DiffieHellman(Original):
         # 2) Generate session key k_AB
         ## 2.1) Generate PRF key prf_key
         # mk_AB = (g^X_B)^X_A
-        mkAB_int = pow(self.publickey(B).y, self.privatekey().x, self.privatekey().p)
+        mkAB_int = pow(self.publickey(recipient).y, self.privatekey().x, self.privatekey().p)
         mkAB = number.long_to_bytes(mkAB_int)
 
         ## 2.2) Calcuate the session key with HMAC with prf_key as key
-        k = HMAC.new(mkAB, ''.join([r, B]), SHA256).digest()
+        k = HMAC.new(mkAB, ''.join([r, recipient]), SHA256).digest()
 
         # 3) Encrypt A, r, k and data with public key of the receiver
         ## 3.1) Serialize A, r, k and data
@@ -62,7 +62,7 @@ class DiffieHellman(Original):
 
         ## 3.4) Encrypt main key t using ElGamal with public key of receiver
         nonce = random.randint(1+1, self.privatekey().p-1-1)
-        csession_tuple = self.publickey(B).encrypt(t, nonce)
+        csession_tuple = self.publickey(recipient).encrypt(t, nonce)
         csession = ''.join(csession_tuple)
 
         ## 3.5) Calculate the MAC of csession and C

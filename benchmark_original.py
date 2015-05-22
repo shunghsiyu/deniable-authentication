@@ -21,11 +21,11 @@ from Crypto import Random
 A = '{}'
 obj = Original(A)
 data = Random.get_random_bytes({})
-cipher_text = obj.enc(data, A, A)
-cipher_text_b64 = obj.enc_base64(data, A, A)
+cipher_text = obj.enc(data, A)
+cipher_text_b64 = obj.enc_base64(data, A)
 """.format(A, input_size)
-    stmt_enc = "obj.enc(data, A, A)"
-    stmt_enc_b64 = "obj.enc_base64(data, A, A)"
+    stmt_enc = "obj.enc(data, A)"
+    stmt_enc_b64 = "obj.enc_base64(data, A)"
     stmt_dec = "obj.dec(cipher_text)"
     stmt_dec_b64 = "obj.dec_base64(cipher_text_b64)"
 
@@ -57,9 +57,9 @@ cipher_text_b64 = obj.enc_base64(data, A, A)
 def get_output_size(input_size, encoding='binary'):
     data = Random.get_random_bytes(input_size)
     if encoding.lower() in ['base64', 'b64']:
-        cipher_text = Original(A).enc_base64(data, A, A)
+        cipher_text = Original(A).enc_base64(data, A)
     else:
-        cipher_text = Original(A).enc(data, A, A)
+        cipher_text = Original(A).enc(data, A)
     return len(cipher_text)
 
 if __name__ == '__main__':
