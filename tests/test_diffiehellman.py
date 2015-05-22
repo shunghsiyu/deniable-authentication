@@ -29,6 +29,9 @@ class TestDiffieHellman(unittest.TestCase):
         x = random.randint(1+1, keyA.p-1-1)
         y = pow(keyA.g, x, keyA.p)
         tup = (keyA.p, keyA.g, x, y)
+        keyB = ElGamal.construct(tup)
+        with open(cls.B, 'w') as f:
+            f.write(export_elgamal_key(keyB))
         with open(cls.B+'.pub', 'w') as f:
             keyB = ElGamal.construct(tup)
             f.write(export_elgamal_key(keyB.publickey()))
@@ -37,6 +40,7 @@ class TestDiffieHellman(unittest.TestCase):
     def tearDownClass(cls):
         os.remove(cls.A)
         os.remove(cls.A+'.pub')
+        os.remove(cls.B)
         os.remove(cls.B+'.pub')
 
     def test_read_private(self):
@@ -63,8 +67,15 @@ class TestDiffieHellman(unittest.TestCase):
 
     def test_dec_fromself(self):
         data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
-        cipher_text = DiffieHellman(self.A).enc_base64(data, self.A)
-        plain_text = DiffieHellman(self.A).dec_base64(cipher_text)
+        cipher_text = DiffieHellman(self.A).enc(data, self.A)
+        plain_text = DiffieHellman(self.A).dec(cipher_text)
+        self.assertIsNotNone(plain_text)
+        self.assertEqual(data, plain_text)
+
+    def test_dec_from_b(self):
+        data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
+        cipher_text = DiffieHellman(self.B).enc(data, self.A)
+        plain_text = DiffieHellman(self.A).dec(cipher_text)
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
 

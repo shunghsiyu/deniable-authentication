@@ -27,14 +27,17 @@ class TestOriginal(unittest.TestCase):
             f.write(rsaA.exportKey('PEM'))
         with open(cls.A+'.pub', 'w') as f:
             f.write(rsaA.publickey().exportKey('PEM'))
-        with open(cls.B+'.pub', 'w') as f:
-            rsaB = RSA.generate(cls.NUM_BITS).publickey()
+        rsaB = RSA.generate(cls.NUM_BITS)
+        with open(cls.B, 'w') as f:
             f.write(rsaB.exportKey('PEM'))
+        with open(cls.B+'.pub', 'w') as f:
+            f.write(rsaB.publickey().exportKey('PEM'))
 
     @classmethod
     def tearDownClass(cls):
         os.remove(cls.A)
         os.remove(cls.A+'.pub')
+        os.remove(cls.B)
         os.remove(cls.B+'.pub')
 
     def test_serialize_container(self):
@@ -59,6 +62,13 @@ class TestOriginal(unittest.TestCase):
     def test_dec_fromself(self):
         data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
         cipher_text = Original(self.A).enc(data, self.A)
+        plain_text = Original(self.A).dec(cipher_text)
+        self.assertIsNotNone(plain_text)
+        self.assertEqual(data, plain_text)
+
+    def test_dec_from_b(self):
+        data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
+        cipher_text = Original(self.B).enc(data, self.A)
         plain_text = Original(self.A).dec(cipher_text)
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
