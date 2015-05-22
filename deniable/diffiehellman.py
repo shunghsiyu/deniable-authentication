@@ -1,14 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import base64
+import cPickle as pickle
+
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import ElGamal
 from Crypto.Util import number
 from Crypto.Random import random
-from original import Original
-import base64
-import cPickle as pickle
+from deniable.original import Original
+
 
 __author__ = 'shunghsiyu'
 

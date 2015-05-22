@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 __author__ = 'shunghsiyu'
 
-import os
 import string
 import unittest
-from diffiehellman import DiffieHellman
+
+import os
+from deniable.diffiehellman import DiffieHellman
 from Crypto import Random
 from Crypto.Random import random
 from Crypto.PublicKey import ElGamal

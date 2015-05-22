@@ -1,8 +1,10 @@
 from __future__ import division, print_function
-from diffiehellman import DiffieHellman
-from Crypto import Random
 import timeit
+
+from deniable.diffiehellman import DiffieHellman
+from Crypto import Random
 import os
+
 __author__ = 'shunghsiyu'
 
 

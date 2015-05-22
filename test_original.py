@@ -3,11 +3,13 @@
 import unittest
 import random
 import string
+import cPickle as pickle
+
 import os
-from original import Original
+from deniable.original import Original
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey.RSA import _RSAobj
-import cPickle as pickle
+
 
 __author__ = 'shunghsiyu'
 
