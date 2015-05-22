@@ -7,7 +7,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
 from Crypto.Util import Counter, number
 import base64
-import pickle
+import cPickle as pickle
 
 __author__ = 'shunghsiyu'
 
