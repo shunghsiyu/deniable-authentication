@@ -14,7 +14,7 @@ def benchmark(input_size, count):
 import random
 import string
 import os
-from original import Original
+from deniable.original import Original
 from Crypto.PublicKey import RSA
 from Crypto import Random
 

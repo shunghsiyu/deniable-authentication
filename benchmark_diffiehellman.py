@@ -16,8 +16,8 @@ def benchmark(input_size, count):
 import random
 import string
 import os
-from diffiehellman import DiffieHellman
-from test_diffiehellman import export_key
+from deniable.diffiehellman import DiffieHellman
+from deniable.utils import export_elgamal_key
 from Crypto.Random import random
 from Crypto.PublicKey import ElGamal
 from Crypto.PublicKey.ElGamal import ElGamalobj
