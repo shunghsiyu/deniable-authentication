@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from Crypto import Random
 from Crypto.Cipher import AES, PKCS1_OAEP
