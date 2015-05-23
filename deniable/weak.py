@@ -5,30 +5,14 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_PSS
-from Crypto.Util import Counter, number
-import base64
+from deniable.utils import Deniable, is_equal
 import cPickle as pickle
 
 __author__ = 'shunghsiyu'
 
-class Original(object):
+class Weak(Deniable):
     def __init__(self, identity):
-        self._identity = unicode(identity).encode('utf-8')
-        self._n = 32
-
-    def _iv(self):
-        return number.bytes_to_long(Random.get_random_bytes(self._n))
-
-    def _ctr(self, iv=None):
-        if iv is None:
-            iv = self._iv()
-        return Counter.new(128, initial_value=iv)
-
-    def enc(self, data, recipient):
-        return self._enc(data, recipient)
-
-    def enc_base64(self, data, recipient):
-        return base64.b64encode(self._enc(data, recipient))
+        super(Weak, self).__init__(identity)
 
     def _enc(self, data, recipient):
         # 0) Ensure the encoding of A and B is UTF-8
@@ -77,12 +61,6 @@ class Original(object):
 
         return payload_serialized
 
-    def dec(self, payload_serialized):
-        return self._dec(payload_serialized)
-
-    def dec_base64(self, payload_serialized):
-        return self._dec(base64.b64decode(payload_serialized))
-
     def _dec(self, payload_serialized):
         # Deserialize payload and obtain C, csession, hmac and iv
         payload = pickle.loads(payload_serialized)
@@ -100,7 +78,7 @@ class Original(object):
 
         # Check C against its HMAC
         hmac_calculated = HMAC.new(hmac_key, C, SHA256).digest()
-        if not self.isEqual(hmac_calculated, hmac):
+        if not is_equal(hmac_calculated, hmac):
             raise RuntimeError('HMAC does not match C')
 
         # Decrypt cipher-text C with AES session key t to obtain
@@ -125,25 +103,12 @@ class Original(object):
 
         return data
 
-    def publickey(self, target):
+    def _publickey(self, target):
         with open(target+'.pub', 'r') as f:
             publickey = RSA.importKey(f.read())
         return publickey
 
-    def privatekey(self):
+    def _privatekey(self):
         with open(self._identity, 'r') as f:
             privatekey = RSA.importKey(f.read())
         return privatekey
-
-    def isEqual(self, a, b):
-        # Mitigate timing attack
-        # from: http://codahale.com/a-lesson-in-timing-attacks/
-
-        if len(a) != len(b):
-            return False
-
-        result = 0
-        for x, y in zip(a, b):
-            result |= ord(x) ^ ord(y)
-
-        return result == 0

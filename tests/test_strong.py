@@ -4,7 +4,7 @@ __author__ = 'shunghsiyu'
 import string
 import unittest
 import os
-from deniable.diffiehellman import DiffieHellman
+from deniable.strong import Strong
 from Crypto import Random
 from Crypto.Random import random
 from Crypto.PublicKey import ElGamal
@@ -12,7 +12,7 @@ from Crypto.PublicKey.ElGamal import ElGamalobj
 from deniable.utils import export_elgamal_key
 
 
-class TestDiffieHellman(unittest.TestCase):
+class TestStrong(unittest.TestCase):
 
     NUM_BITS = 512
 
@@ -44,50 +44,50 @@ class TestDiffieHellman(unittest.TestCase):
         os.remove(cls.B+'.pub')
 
     def test_read_private(self):
-        private_key = DiffieHellman(self.A).privatekey()
+        private_key = Strong(self.A).privatekey()
         self.assertIsNotNone(private_key)
         self.assertIsInstance(private_key, ElGamalobj)
         self.assertTrue(private_key.has_private())
 
     def test_read_public(self):
-        public_key = DiffieHellman(self.A).publickey(self.B)
+        public_key = Strong(self.A).publickey(self.B)
         self.assertIsNotNone(public_key)
         self.assertIsInstance(public_key, ElGamalobj)
 
     def test_pg(self):
-        private_keyA = DiffieHellman(self.A).privatekey()
-        public_keyB = DiffieHellman(self.A).publickey(self.B)
+        private_keyA = Strong(self.A).privatekey()
+        public_keyB = Strong(self.A).publickey(self.B)
         self.assertEqual(private_keyA.p, public_keyB.p)
         self.assertEqual(private_keyA.g, public_keyB.g)
 
     def test_enc_toself(self):
         data = '123'
-        cipher_text = DiffieHellman(self.A).enc(data, self.A)
+        cipher_text = Strong(self.A).enc(data, self.A)
         self.assertIsNotNone(cipher_text)
 
     def test_dec_fromself(self):
         data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
-        cipher_text = DiffieHellman(self.A).enc(data, self.A)
-        plain_text = DiffieHellman(self.A).dec(cipher_text)
+        cipher_text = Strong(self.A).enc(data, self.A)
+        plain_text = Strong(self.A).dec(cipher_text)
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
 
     def test_dec_from_b(self):
         data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
-        cipher_text = DiffieHellman(self.B).enc(data, self.A)
-        plain_text = DiffieHellman(self.A).dec(cipher_text)
+        cipher_text = Strong(self.B).enc(data, self.A)
+        plain_text = Strong(self.A).dec(cipher_text)
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
 
     def test_enc_toself_b64(self):
         data = '123'
-        cipher_text = DiffieHellman(self.A).enc(data, self.A)
+        cipher_text = Strong(self.A).enc(data, self.A)
         self.assertIsNotNone(cipher_text)
 
     def test_dec_fromself_b64(self):
         data = u'this is a unicode string with chinese for testing the code\n這是中文'.encode('utf-8')
-        cipher_text_b64 = DiffieHellman(self.A).enc_base64(data, self.A)
-        plain_text = DiffieHellman(self.A).dec_base64(cipher_text_b64)
+        cipher_text_b64 = Strong(self.A).enc_base64(data, self.A)
+        plain_text = Strong(self.A).dec_base64(cipher_text_b64)
         self.assertIsNotNone(plain_text)
         self.assertEqual(data, plain_text)
 

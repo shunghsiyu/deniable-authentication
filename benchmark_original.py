@@ -1,25 +1,28 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 from __future__ import division, print_function
 import timeit
-
-from deniable.original import Original
+from deniable.weak import Weak
 from Crypto import Random
 import os
 
 __author__ = 'shunghsiyu'
 
+
 A = 'Alice'
+
 
 def benchmark(input_size, count):
     setup = """
 import random
 import string
 import os
-from deniable.original import Original
+from deniable.weak import Weak
 from Crypto.PublicKey import RSA
 from Crypto import Random
 
 A = '{}'
-obj = Original(A)
+obj = Weak(A)
 data = Random.get_random_bytes({})
 cipher_text = obj.enc(data, A)
 cipher_text_b64 = obj.enc_base64(data, A)
@@ -57,9 +60,9 @@ cipher_text_b64 = obj.enc_base64(data, A)
 def get_output_size(input_size, encoding='binary'):
     data = Random.get_random_bytes(input_size)
     if encoding.lower() in ['base64', 'b64']:
-        cipher_text = Original(A).enc_base64(data, A)
+        cipher_text = Weak(A).enc_base64(data, A)
     else:
-        cipher_text = Original(A).enc(data, A)
+        cipher_text = Weak(A).enc(data, A)
     return len(cipher_text)
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
 from Crypto.PublicKey import RSA
-from deniable.original import Original
+from deniable.weak import Weak
 import argparse
 __author__ = 'shunghsiyu'
 
@@ -20,7 +20,7 @@ def gen(args):
 def enc(args):
     name = args.identity.read().decode('utf-8')
     args.identity.close()
-    cipher_text = Original(name).enc(args.input.read(), args.recipient)
+    cipher_text = Weak(name).enc(args.input.read(), args.recipient)
     args.input.close()
     args.output.write(cipher_text)
     args.output.close()
@@ -29,7 +29,7 @@ def enc(args):
 def dec(args):
     name = args.identity.read().decode('utf-8')
     args.identity.close()
-    plain_text = Original(name).dec(args.input.read())
+    plain_text = Weak(name).dec(args.input.read())
     args.input.close()
     args.output.write(plain_text)
     args.output.close()

@@ -8,22 +8,16 @@ from Crypto.Hash import HMAC, SHA256
 from Crypto.PublicKey import ElGamal
 from Crypto.Util import number
 from Crypto.Random import random
-from deniable.original import Original
+from deniable.weak import Weak
+from deniable.utils import is_equal
 
 
 __author__ = 'shunghsiyu'
 
 
-class DiffieHellman(Original):
+class Strong(Weak):
     def __init__(self, identity):
-        super(DiffieHellman, self).__init__(identity)
-        self._n = 16
-
-    def enc(self, data, recipient):
-        return self._enc(data, recipient)
-
-    def enc_base64(self, data, recipient):
-        return base64.b64encode(self._enc(data, recipient))
+        super(Strong, self).__init__(identity)
 
     def _enc(self, data, recipient):
         # 0) Ensure the encoding of A and B is UTF-8
@@ -71,12 +65,6 @@ class DiffieHellman(Original):
         payload_serialized = pickle.dumps(dict(c=C, hmac=mac, csession=csession, iv=iv), pickle.HIGHEST_PROTOCOL)
         return payload_serialized
 
-    def dec(self, payload_serialized):
-        return self._dec(payload_serialized)
-
-    def dec_base64(self, payload_serialized):
-        return self._dec(base64.b64decode(payload_serialized))
-
     def _dec(self, payload_serialized):
         # Deserialize payload to obtain C, IV, MAC and ciphertext of main key t (csession)
         payload = pickle.loads(payload_serialized)
@@ -96,7 +84,7 @@ class DiffieHellman(Original):
 
         # Verify the MAC
         mac_calculated = HMAC.new(hmac_key, ''.join([csession, C]), SHA256).digest()
-        if not self.isEqual(mac_calculated, mac):
+        if not is_equal(mac_calculated, mac):
             raise RuntimeError('HMAC is invalid')
 
         # Decrypt C to obtain serialized A, r, k and data
@@ -118,18 +106,17 @@ class DiffieHellman(Original):
         k_calculated = HMAC.new(mkAB, ''.join([r, self._identity]), SHA256).digest()
 
         # Verify the session key
-        if not self.isEqual(k, k_calculated):
+        if not is_equal(k, k_calculated):
             raise RuntimeError('Session key is invalid')
 
         return data
 
-    def publickey(self, target):
-        # TODO: Work on both certificate and name
+    def _publickey(self, target):
         with open(target+'.pub', 'r') as f:
             publickey = ElGamal.construct(tuple(int(value) for value in f.read().splitlines()))
         return publickey
 
-    def privatekey(self):
+    def _privatekey(self):
         with open(self._identity, 'r') as f:
             privatekey = ElGamal.construct(tuple(int(value) for value in f.read().splitlines()))
         assert privatekey.has_private()

@@ -4,7 +4,7 @@ from __future__ import print_function, unicode_literals
 from Crypto import Random
 from Crypto.Random import random
 from Crypto.PublicKey import ElGamal
-from deniable.diffiehellman import DiffieHellman
+from deniable.strong import Strong
 from deniable.utils import export_elgamal_key
 import argparse
 __author__ = 'shunghsiyu'
@@ -36,7 +36,7 @@ def gen(args):
 def enc(args):
     name = args.identity.read().decode('utf-8')
     args.identity.close()
-    cipher_text = DiffieHellman(name).enc(args.input.read(), args.recipient)
+    cipher_text = Strong(name).enc(args.input.read(), args.recipient)
     args.input.close()
     args.output.write(cipher_text)
     args.output.close()
@@ -45,7 +45,7 @@ def enc(args):
 def dec(args):
     name = args.identity.read().decode('utf-8')
     args.identity.close()
-    plain_text = DiffieHellman(name).dec(args.input.read())
+    plain_text = Strong(name).dec(args.input.read())
     args.input.close()
     args.output.write(plain_text)
     args.output.close()

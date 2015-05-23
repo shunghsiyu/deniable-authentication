@@ -1,7 +1,8 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 from __future__ import division, print_function
 import timeit
-
-from deniable.diffiehellman import DiffieHellman
+from deniable.strong import Strong
 from Crypto import Random
 import os
 
@@ -16,7 +17,7 @@ def benchmark(input_size, count):
 import random
 import string
 import os
-from deniable.diffiehellman import DiffieHellman
+from deniable.strong import Strong
 from deniable.utils import export_elgamal_key
 from Crypto.Random import random
 from Crypto.PublicKey import ElGamal
@@ -24,7 +25,7 @@ from Crypto.PublicKey.ElGamal import ElGamalobj
 from Crypto import Random
 
 A = '{}'
-obj = DiffieHellman(A)
+obj = Strong(A)
 data = Random.get_random_bytes({})
 cipher_text = obj.enc(data, A)
 cipher_text_b64 = obj.enc_base64(data, A)
@@ -62,9 +63,9 @@ cipher_text_b64 = obj.enc_base64(data, A)
 def get_output_size(input_size, encoding='binary'):
     data = Random.get_random_bytes(input_size)
     if encoding.lower() in ['base64', 'b64']:
-        cipher_text = DiffieHellman(A).enc_base64(data, A)
+        cipher_text = Strong(A).enc_base64(data, A)
     else:
-        cipher_text = DiffieHellman(A).enc(data, A)
+        cipher_text = Strong(A).enc(data, A)
     return len(cipher_text)
 
 if __name__ == '__main__':
